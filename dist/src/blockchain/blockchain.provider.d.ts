@@ -11,6 +11,7 @@ export declare const BlockchainProvider: {
             anonymous?: undefined;
             name?: undefined;
             outputs?: undefined;
+            constant?: undefined;
         } | {
             anonymous: boolean;
             inputs: {
@@ -23,6 +24,19 @@ export declare const BlockchainProvider: {
             type: string;
             stateMutability?: undefined;
             outputs?: undefined;
+            constant?: undefined;
+        } | {
+            inputs: {
+                internalType: string;
+                name: string;
+                type: string;
+            }[];
+            name: string;
+            outputs: any[];
+            stateMutability: string;
+            type: string;
+            anonymous?: undefined;
+            constant?: undefined;
         } | {
             inputs: {
                 internalType: string;
@@ -37,6 +51,7 @@ export declare const BlockchainProvider: {
             }[];
             stateMutability: string;
             type: string;
+            constant: boolean;
             anonymous?: undefined;
         })[]>;
         account: string;
