@@ -87,7 +87,7 @@ let ProjectsService = class ProjectsService {
                 pages: totalPages,
                 total: totalItems,
             },
-            projects,
+            result: projects,
         };
     }
     async findOne(id) {

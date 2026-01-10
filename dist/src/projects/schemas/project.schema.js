@@ -41,7 +41,9 @@ __decorate([
     __metadata("design:type", mongoose_2.default.Schema.Types.ObjectId)
 ], Project.prototype, "manager", void 0);
 __decorate([
-    (0, mongoose_1.Prop)({ type: [mongoose_2.default.Schema.Types.ObjectId], ref: user_schema_1.User.name }),
+    (0, mongoose_1.Prop)({
+        type: [{ type: mongoose_2.default.Schema.Types.ObjectId, ref: user_schema_1.User.name }],
+    }),
     __metadata("design:type", Array)
 ], Project.prototype, "teamMembers", void 0);
 __decorate([

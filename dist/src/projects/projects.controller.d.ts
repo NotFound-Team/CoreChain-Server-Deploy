@@ -13,7 +13,7 @@ export declare class ProjectsController {
             pages: number;
             total: number;
         };
-        projects: import("./project.interface").IProject[];
+        result: import("./project.interface").IProject[];
     }>;
     findOne(id: string): Promise<import("./project.interface").IProject>;
     update(id: string, updateProjectDto: UpdateProjectDto, user: IUser): Promise<import("mongoose").UpdateWriteOpResult>;

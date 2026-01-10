@@ -19,7 +19,7 @@ export declare class ProjectsService {
             pages: number;
             total: number;
         };
-        projects: IProject[];
+        result: IProject[];
     }>;
     findOne(id: string): Promise<IProject>;
     update(id: string, updateProjectDto: UpdateProjectDto, user: IUser): Promise<mongoose.UpdateWriteOpResult>;

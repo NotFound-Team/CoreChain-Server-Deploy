@@ -14,6 +14,7 @@ const mongoose_1 = require("@nestjs/mongoose");
 const project_schema_1 = require("./schemas/project.schema");
 const tasks_module_1 = require("../tasks/tasks.module");
 const task_schema_1 = require("../tasks/schemas/task.schema");
+const users_module_1 = require("../users/users.module");
 let ProjectsModule = class ProjectsModule {
 };
 exports.ProjectsModule = ProjectsModule;
@@ -25,6 +26,7 @@ exports.ProjectsModule = ProjectsModule = __decorate([
                 { name: task_schema_1.Task.name, schema: task_schema_1.TaskSchema },
             ]),
             (0, common_1.forwardRef)(() => tasks_module_1.TasksModule),
+            (0, common_1.forwardRef)(() => users_module_1.UsersModule),
         ],
         controllers: [projects_controller_1.ProjectsController],
         providers: [projects_service_1.ProjectsService],
