@@ -61,6 +61,7 @@ export declare class UsersService {
         };
         result: PublicUser[];
     }>;
+    findOnePublic(id: string): Promise<PublicUser>;
     findOne(id: string): Promise<PublicUser>;
     findByIds(ids: string[]): Promise<Omit<mongoose.Document<unknown, {}, mongoose.Document<unknown, {}, User> & User & {
         _id: mongoose.Types.ObjectId;
@@ -73,6 +74,10 @@ export declare class UsersService {
     update(updateUserDto: UpdateUserDto, user: IUser, id: string): Promise<mongoose.UpdateWriteOpResult>;
     updateWorkingHours(updateWorkingHoursDto: UpdateWorkingHoursDto, user: IUser, id: string): Promise<mongoose.UpdateWriteOpResult>;
     updatePublicUser(updatePublicUserDto: UpdatePublicUserDto, user: IUser, id: string): Promise<mongoose.UpdateWriteOpResult>;
+    updateFcmToken(userId: string, fcmToken: string): Promise<{
+        message: string;
+        userId: string;
+    }>;
     changePassword(updatePassword: UpdatePassword, thisUser: IUser): Promise<string>;
     remove(id: string, user: IUser): Promise<{
         deleted: number;

@@ -22,9 +22,13 @@ const mongoose_1 = require("@nestjs/mongoose");
 const task_schema_1 = require("./schemas/task.schema");
 const mongoose_2 = __importDefault(require("mongoose"));
 const customize_1 = require("../decorators/customize");
+const notification_service_1 = require("../notification/notification.service");
+const users_service_1 = require("../users/users.service");
 let TasksService = class TasksService {
-    constructor(taskModel) {
+    constructor(taskModel, notificationService, usersService) {
         this.taskModel = taskModel;
+        this.notificationService = notificationService;
+        this.usersService = usersService;
     }
     async create(createTaskDto, user) {
         const { name, description, title, attachments = [], assignedTo, projectId, priority, status, startDate, dueDate, } = createTaskDto;
@@ -44,7 +48,55 @@ let TasksService = class TasksService {
             startDate,
             dueDate,
         });
+        this.publishTaskCreatedEvent(newTask, user).catch((error) => {
+            console.error('Failed to publish task.created event:', error);
+        });
         return newTask._id;
+    }
+    async publishTaskCreatedEvent(task, creator) {
+        try {
+            const assignedUser = await this.usersService.findOne(task.assignedTo.toString());
+            if (!assignedUser) {
+                console.warn(`Assigned user not found: ${task.assignedTo}`);
+                return;
+            }
+            const event = {
+                event_type: 'task.created',
+                timestamp: new Date().toISOString(),
+                data: {
+                    _id: task._id.toString(),
+                    title: task.title,
+                    description: task.description,
+                    attachments: task.attachments,
+                    createdBy: {
+                        _id: creator._id.toString(),
+                        email: creator.email,
+                    },
+                    assignedTo: task.assignedTo.toString(),
+                    projectId: task.projectId?.toString(),
+                    priority: task.priority,
+                    status: task.status,
+                    startDate: task.startDate,
+                    dueDate: task.dueDate,
+                    isDeleted: task.isDeleted || false,
+                    createdAt: task.createdAt,
+                    updatedAt: task.updatedAt,
+                },
+                metadata: {
+                    assignedToUser: {
+                        _id: assignedUser._id.toString(),
+                        fcmToken: assignedUser.fcmToken || '',
+                        name: assignedUser.name || '',
+                        email: assignedUser.email,
+                    },
+                },
+            };
+            await this.notificationService.publishTaskCreated(event);
+        }
+        catch (error) {
+            console.error('Error in publishTaskCreatedEvent:', error);
+            throw error;
+        }
     }
     async countTask(status, id) {
         if (status === 0) {
@@ -134,6 +186,7 @@ exports.TasksService = TasksService;
 exports.TasksService = TasksService = __decorate([
     (0, common_1.Injectable)(),
     __param(0, (0, mongoose_1.InjectModel)(task_schema_1.Task.name)),
-    __metadata("design:paramtypes", [Object])
+    __metadata("design:paramtypes", [Object, notification_service_1.NotificationService,
+        users_service_1.UsersService])
 ], TasksService);
 //# sourceMappingURL=tasks.service.js.map

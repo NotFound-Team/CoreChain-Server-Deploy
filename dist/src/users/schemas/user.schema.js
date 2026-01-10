@@ -74,6 +74,10 @@ __decorate([
     __metadata("design:type", mongoose_2.default.Schema.Types.ObjectId)
 ], User.prototype, "position", void 0);
 __decorate([
+    (0, mongoose_1.Prop)(),
+    __metadata("design:type", String)
+], User.prototype, "fcmToken", void 0);
+__decorate([
     (0, mongoose_1.Prop)({ type: Boolean, default: false }),
     __metadata("design:type", Boolean)
 ], User.prototype, "isDeleted", void 0);

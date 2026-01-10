@@ -1,6 +1,7 @@
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdatePassword, UpdatePublicUserDto, UpdateUserDto, UpdateWorkingHoursDto } from './dto/update-user.dto';
+import { UpdateFcmTokenDto } from './dto/update-fcm-token.dto';
 import { IUser } from './users.interface';
 export declare class UsersController {
     private readonly usersService;
@@ -16,10 +17,15 @@ export declare class UsersController {
         result: import("./users.interface").PublicUser[];
     }>;
     findOne(id: string): Promise<import("./users.interface").PublicUser>;
+    findOnePublic(id: string): Promise<import("./users.interface").PublicUser>;
     findPrivateOne(id: string): Promise<import("./users.interface").CompleteUser>;
     update(updateUserDto: UpdateUserDto, id: string, user: IUser): Promise<import("mongoose").UpdateWriteOpResult>;
     updatePublic(updatePublicUserDto: UpdatePublicUserDto, id: string, user: IUser): Promise<import("mongoose").UpdateWriteOpResult>;
     updateWorkingHours(updateWorkingHoursDto: UpdateWorkingHoursDto, id: string, user: IUser): Promise<import("mongoose").UpdateWriteOpResult>;
+    updateFcmToken(id: string, updateFcmTokenDto: UpdateFcmTokenDto, user: IUser): Promise<{
+        message: string;
+        userId: string;
+    }>;
     changePass(updatePassword: UpdatePassword, user: IUser): Promise<string>;
     remove(id: string, user: IUser): Promise<{
         deleted: number;

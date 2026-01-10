@@ -32,6 +32,7 @@ const contracts_module_1 = require("./contracts/contracts.module");
 const personnel_module_1 = require("./personnel/personnel.module");
 const reports_module_1 = require("./reports/reports.module");
 const cache_module_1 = require("./cache/cache.module");
+const notification_module_1 = require("./notification/notification.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -76,6 +77,7 @@ exports.AppModule = AppModule = __decorate([
             personnel_module_1.PersonnelModule,
             reports_module_1.ReportsModule,
             cache_module_1.RedisCacheModule,
+            notification_module_1.NotificationModule,
         ],
         controllers: [app_controller_1.AppController],
         providers: [app_service_1.AppService],

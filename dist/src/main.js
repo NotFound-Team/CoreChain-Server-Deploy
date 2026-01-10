@@ -14,8 +14,8 @@ const cookie_parser_1 = __importDefault(require("cookie-parser"));
 const platform_socket_io_1 = require("@nestjs/platform-socket.io");
 async function bootstrap() {
     const app = await core_1.NestFactory.create(app_module_1.AppModule);
-    app.useGlobalFilters(new customize_1.AllExceptionsFilter());
     const configService = app.get(config_1.ConfigService);
+    app.useGlobalFilters(new customize_1.AllExceptionsFilter());
     const reflector = app.get(core_1.Reflector);
     app.useGlobalGuards(new jwt_auth_guard_1.JwtAuthGuard(reflector));
     app.useGlobalInterceptors(new transform_interceptor_1.TransformInterceptor(reflector));

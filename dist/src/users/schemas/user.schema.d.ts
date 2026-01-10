@@ -14,6 +14,7 @@ export declare class User {
     dayOff: number;
     employeeId: string;
     position: mongoose.Schema.Types.ObjectId;
+    fcmToken: string;
     isDeleted: boolean;
     createdAt: Date;
     updatedAt: Date;

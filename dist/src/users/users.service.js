@@ -164,6 +164,7 @@ let UsersService = class UsersService {
     }
     async findAll(currentPage, limit, qs) {
         let { filter, skip, sort, projection, population } = (0, api_query_params_1.default)(qs);
+        console.log(filter);
         delete filter.current;
         delete filter.pageSize;
         let offset = (+currentPage - 1) * +limit;
@@ -192,6 +193,18 @@ let UsersService = class UsersService {
             },
             result,
         };
+    }
+    async findOnePublic(id) {
+        if (!mongoose_2.default.Types.ObjectId.isValid(id)) {
+            throw new common_1.BadRequestException(`Invalid user ID`);
+        }
+        const employee = await this.userModel
+            .findOne({
+            _id: id,
+            isDeleted: false,
+        })
+            .select('name avatar');
+        return employee;
     }
     async findOne(id) {
         if (!mongoose_2.default.Types.ObjectId.isValid(id)) {
@@ -358,6 +371,20 @@ let UsersService = class UsersService {
             },
             ...updatePublicUserDto,
         });
+    }
+    async updateFcmToken(userId, fcmToken) {
+        if (!mongoose_2.default.Types.ObjectId.isValid(userId)) {
+            throw new common_1.BadRequestException(`Invalid user ID`);
+        }
+        const user = await this.userModel.findById(userId);
+        if (!user) {
+            throw new common_1.BadRequestException('User not found');
+        }
+        await this.userModel.updateOne({ _id: userId }, { fcmToken: fcmToken });
+        return {
+            message: 'FCM token updated successfully',
+            userId: userId,
+        };
     }
     async changePassword(updatePassword, thisUser) {
         const { id, oldPassword, newPassword } = updatePassword;
