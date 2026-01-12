@@ -22,10 +22,12 @@ const project_schema_1 = require("./schemas/project.schema");
 const api_query_params_1 = __importDefault(require("api-query-params"));
 const mongoose_2 = __importDefault(require("mongoose"));
 const tasks_service_1 = require("../tasks/tasks.service");
+const departments_service_1 = require("../departments/departments.service");
 let ProjectsService = class ProjectsService {
-    constructor(projectModel, taskService) {
+    constructor(projectModel, taskService, departmentService) {
         this.projectModel = projectModel;
         this.taskService = taskService;
+        this.departmentService = departmentService;
     }
     async progressCalculation(id) {
         const taskCompleted = await this.taskService.countTask(3, id);
@@ -51,6 +53,7 @@ let ProjectsService = class ProjectsService {
             endDate,
             actualEndDate,
         });
+        await this.departmentService.update(department.toString(), { $push: { projectIds: newProject._id } });
         return newProject._id;
     }
     async findAll(currentPage, limit, qs) {
@@ -135,6 +138,7 @@ exports.ProjectsService = ProjectsService;
 exports.ProjectsService = ProjectsService = __decorate([
     (0, common_1.Injectable)(),
     __param(0, (0, mongoose_1.InjectModel)(project_schema_1.Project.name)),
-    __metadata("design:paramtypes", [Object, tasks_service_1.TasksService])
+    __metadata("design:paramtypes", [Object, tasks_service_1.TasksService,
+        departments_service_1.DepartmentsService])
 ], ProjectsService);
 //# sourceMappingURL=projects.service.js.map

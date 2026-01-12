@@ -6,10 +6,12 @@ import { SoftDeleteModel } from 'soft-delete-plugin-mongoose';
 import mongoose from 'mongoose';
 import { TasksService } from 'src/tasks/tasks.service';
 import { IProject } from './project.interface';
+import { DepartmentsService } from 'src/departments/departments.service';
 export declare class ProjectsService {
     private projectModel;
     private taskService;
-    constructor(projectModel: SoftDeleteModel<ProjectDocument>, taskService: TasksService);
+    private departmentService;
+    constructor(projectModel: SoftDeleteModel<ProjectDocument>, taskService: TasksService, departmentService: DepartmentsService);
     progressCalculation(id: string): Promise<number>;
     create(createProjectDto: CreateProjectDto, user: IUser): Promise<mongoose.Types.ObjectId>;
     findAll(currentPage: number, limit: number, qs: string): Promise<{

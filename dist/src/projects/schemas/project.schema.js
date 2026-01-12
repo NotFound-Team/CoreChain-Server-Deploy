@@ -15,6 +15,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.ProjectSchema = exports.Project = void 0;
 const mongoose_1 = require("@nestjs/mongoose");
 const mongoose_2 = __importDefault(require("mongoose"));
+const department_schema_1 = require("../../departments/schemas/department.schema");
 const task_schema_1 = require("../../tasks/schemas/task.schema");
 const user_schema_1 = require("../../users/schemas/user.schema");
 let Project = class Project {
@@ -33,7 +34,7 @@ __decorate([
     __metadata("design:type", Array)
 ], Project.prototype, "attachments", void 0);
 __decorate([
-    (0, mongoose_1.Prop)(),
+    (0, mongoose_1.Prop)({ type: mongoose_2.default.Schema.Types.ObjectId, ref: department_schema_1.Department.name }),
     __metadata("design:type", mongoose_2.default.Schema.Types.ObjectId)
 ], Project.prototype, "department", void 0);
 __decorate([

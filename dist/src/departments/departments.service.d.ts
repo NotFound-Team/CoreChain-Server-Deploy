@@ -19,7 +19,7 @@ export declare class DepartmentsService {
         result: IDepartment[];
     }>;
     findOne(id: string): Promise<IDepartment>;
-    update(id: string, updateDepartmentDto: UpdateDepartmentDto, user: IUser): Promise<mongoose.UpdateWriteOpResult>;
+    update(id: string, updateDepartmentDto: UpdateDepartmentDto | any, user?: IUser): Promise<mongoose.UpdateWriteOpResult>;
     remove(id: string, user: IUser): Promise<{
         deleted: number;
     }>;

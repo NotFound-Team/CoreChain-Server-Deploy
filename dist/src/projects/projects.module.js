@@ -15,6 +15,7 @@ const project_schema_1 = require("./schemas/project.schema");
 const tasks_module_1 = require("../tasks/tasks.module");
 const task_schema_1 = require("../tasks/schemas/task.schema");
 const users_module_1 = require("../users/users.module");
+const departments_module_1 = require("../departments/departments.module");
 let ProjectsModule = class ProjectsModule {
 };
 exports.ProjectsModule = ProjectsModule;
@@ -27,6 +28,7 @@ exports.ProjectsModule = ProjectsModule = __decorate([
             ]),
             (0, common_1.forwardRef)(() => tasks_module_1.TasksModule),
             (0, common_1.forwardRef)(() => users_module_1.UsersModule),
+            (0, common_1.forwardRef)(() => departments_module_1.DepartmentsModule),
         ],
         controllers: [projects_controller_1.ProjectsController],
         providers: [projects_service_1.ProjectsService],
