@@ -31,7 +31,7 @@ let TasksService = class TasksService {
         this.usersService = usersService;
     }
     async create(createTaskDto, user) {
-        const { name, description, title, attachments = [], assignedTo, projectId, priority, status, startDate, dueDate, } = createTaskDto;
+        const { description, title, attachments = [], assignedTo, projectId, priority, status, startDate, dueDate, } = createTaskDto;
         if (startDate && dueDate) {
             const start = new Date(startDate);
             const due = new Date(dueDate);
@@ -44,7 +44,6 @@ let TasksService = class TasksService {
                 _id: user._id,
                 email: user.email,
             },
-            name,
             title,
             description,
             attachments,

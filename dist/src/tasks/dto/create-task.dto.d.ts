@@ -1,6 +1,5 @@
 import mongoose from 'mongoose';
 export declare class CreateTaskDto {
-    name: string;
     title: string;
     description: string;
     attachments: Array<string>;
