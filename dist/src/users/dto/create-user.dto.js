@@ -57,4 +57,9 @@ __decorate([
     (0, class_validator_1.IsMongoId)(),
     __metadata("design:type", mongoose_1.default.Schema.Types.ObjectId)
 ], CreateUserDto.prototype, "department", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], CreateUserDto.prototype, "avatar", void 0);
 //# sourceMappingURL=create-user.dto.js.map

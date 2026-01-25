@@ -37,7 +37,7 @@ let JwtStrategy = class JwtStrategy extends (0, passport_1.PassportStrategy)(pas
         const roleData = await this.rolesService.findOne(role._id);
         const permissions = roleData ? (roleData.permissions ?? []) : [];
         const employee = await this.userService.findOne(_id);
-        console.log('>>> check employee', employee);
+        console.log('>> request by', employee.email);
         return {
             _id,
             name,

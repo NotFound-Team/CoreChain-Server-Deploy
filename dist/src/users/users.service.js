@@ -124,7 +124,7 @@ let UsersService = class UsersService {
     }
     async create(createUserDto, user) {
         try {
-            const { name, email, password, role, workingHours, position, department, } = createUserDto;
+            const { name, email, password, role, workingHours, position, department, avatar, } = createUserDto;
             const isExist = await this.userModel.findOne({ email });
             if (isExist) {
                 throw new common_1.BadRequestException('Email already exist. Please use another email');
@@ -144,6 +144,7 @@ let UsersService = class UsersService {
                 dayOff: 0,
                 workingHours: workingHours || 0,
                 txHash,
+                avatar,
                 createdBy: {
                     _id: user._id,
                     email: user.email,

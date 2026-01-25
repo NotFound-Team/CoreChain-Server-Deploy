@@ -8,4 +8,5 @@ export declare class CreateUserDto {
     employeeId: string;
     position: mongoose.Schema.Types.ObjectId;
     department: mongoose.Schema.Types.ObjectId;
+    avatar?: string;
 }
