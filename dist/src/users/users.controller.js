@@ -79,7 +79,7 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], UsersController.prototype, "findAll", null);
 __decorate([
-    (0, common_1.Get)('by-ids'),
+    (0, common_1.Post)('by-ids'),
     __param(0, (0, common_1.Body)('ids')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Array]),
