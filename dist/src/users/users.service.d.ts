@@ -61,6 +61,11 @@ export declare class UsersService {
         };
         result: PublicUser[];
     }>;
+    findAllByIds(ids: string[]): Promise<(mongoose.FlattenMaps<mongoose.Document<unknown, {}, User> & User & {
+        _id: mongoose.Types.ObjectId;
+    }> & Required<{
+        _id: mongoose.Types.ObjectId;
+    }>)[]>;
     findOnePublic(id: string): Promise<PublicUser>;
     findOne(id: string): Promise<PublicUser>;
     findByIds(ids: string[]): Promise<Omit<mongoose.Document<unknown, {}, mongoose.Document<unknown, {}, User> & User & {

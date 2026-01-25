@@ -193,6 +193,27 @@ let UsersService = class UsersService {
             result,
         };
     }
+    async findAllByIds(ids) {
+        if (!ids || ids.length === 0) {
+            return [];
+        }
+        const invalidIds = ids.filter((id) => !mongoose_2.default.Types.ObjectId.isValid(id));
+        if (invalidIds.length > 0) {
+            throw new common_1.BadRequestException(`Invalid user IDs: ${invalidIds.join(', ')}`);
+        }
+        return await this.userModel
+            .find({
+            _id: { $in: ids },
+            isDeleted: false,
+        })
+            .select('-password -refreshToken')
+            .populate([
+            { path: 'role', select: { name: 1, _id: 1 } },
+            { path: 'position', select: '_id title' },
+            { path: 'department', select: '_id name' },
+        ])
+            .lean();
+    }
     async findOnePublic(id) {
         if (!mongoose_2.default.Types.ObjectId.isValid(id)) {
             throw new common_1.BadRequestException(`Invalid user ID`);
@@ -304,6 +325,18 @@ let UsersService = class UsersService {
             catch (error) {
                 throw error;
             }
+        }
+        if (updateUserDto.department && updateUserDto.department !== idExist.department) {
+            const department = await this.departmentService.findOne(idExist.department.toString());
+            department.employees = department.employees.filter((empId) => empId.toString() !== idExist._id.toString());
+            await this.departmentService.update(department._id.toString(), {
+                employees: department.employees,
+            }, customize_1.System);
+            const newDepartment = await this.departmentService.findOne(updateUserDto.department.toString());
+            newDepartment.employees.push(idExist._id);
+            await this.departmentService.update(newDepartment._id.toString(), {
+                employees: newDepartment.employees,
+            }, user);
         }
         const cachedEmployee = await this.getCached(id);
         if (cachedEmployee) {

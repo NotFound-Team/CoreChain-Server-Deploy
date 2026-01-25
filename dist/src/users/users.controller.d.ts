@@ -16,6 +16,11 @@ export declare class UsersController {
         };
         result: import("./users.interface").PublicUser[];
     }>;
+    findAllByIds(ids: string[]): Promise<(import("mongoose").FlattenMaps<import("mongoose").Document<unknown, {}, import("./schemas/user.schema").User> & import("./schemas/user.schema").User & {
+        _id: import("mongoose").Types.ObjectId;
+    }> & Required<{
+        _id: import("mongoose").Types.ObjectId;
+    }>)[]>;
     findOne(id: string): Promise<import("./users.interface").PublicUser>;
     findOnePublic(id: string): Promise<import("./users.interface").PublicUser>;
     findPrivateOne(id: string): Promise<import("./users.interface").CompleteUser>;
