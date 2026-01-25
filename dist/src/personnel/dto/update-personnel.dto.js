@@ -14,14 +14,14 @@ const mapped_types_1 = require("@nestjs/mapped-types");
 const create_personnel_dto_1 = require("./create-personnel.dto");
 const class_validator_1 = require("class-validator");
 const class_transformer_1 = require("class-transformer");
-const update_user_dto_1 = require("../../users/dto/update-user.dto");
+const create_user_dto_1 = require("../../users/dto/create-user.dto");
 class UpdatePersonnelDto extends (0, mapped_types_1.PartialType)(create_personnel_dto_1.CreatePersonnelDto) {
 }
 exports.UpdatePersonnelDto = UpdatePersonnelDto;
 __decorate([
     (0, class_validator_1.IsNotEmpty)(),
     (0, class_validator_1.ValidateNested)(),
-    (0, class_transformer_1.Type)(() => update_user_dto_1.AdjustmentDto),
-    __metadata("design:type", update_user_dto_1.AdjustmentDto)
+    (0, class_transformer_1.Type)(() => create_user_dto_1.AdjustmentDto),
+    __metadata("design:type", create_user_dto_1.AdjustmentDto)
 ], UpdatePersonnelDto.prototype, "adjustment", void 0);
 //# sourceMappingURL=update-personnel.dto.js.map
