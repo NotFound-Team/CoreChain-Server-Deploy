@@ -136,17 +136,13 @@ let TasksService = class TasksService {
         filter.isDeleted = false;
         let offset = (+currentPage - 1) * +limit;
         let defaultLimit = +limit ? +limit : 10;
-        if (!startDate && dueDate) {
-            startDate = customize_1.START_OF_MONTH.toISOString();
-        }
-        if (startDate && !dueDate) {
-            dueDate = customize_1.END_OF_MONTH.toISOString();
-        }
-        if (startDate && dueDate) {
+        if (startDate) {
             filter.startDate = { $gte: startDate };
+        }
+        if (dueDate) {
             filter.dueDate = { $lte: dueDate };
         }
-        const totalItems = (await this.taskModel.find(filter)).length;
+        const totalItems = await this.taskModel.countDocuments(filter);
         const totalPages = Math.ceil(totalItems / defaultLimit);
         const result = await this.taskModel
             .find(filter)
