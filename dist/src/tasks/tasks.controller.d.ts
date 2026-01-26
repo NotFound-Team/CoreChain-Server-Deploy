@@ -15,6 +15,15 @@ export declare class TasksController {
         };
         result: import("./task.interface").ITask[];
     }>;
+    findAllByDay(currentPage: string, limit: string, startDate: string, dueDate: string, user: IUser): Promise<{
+        meta: {
+            current: number;
+            pageSize: number;
+            pages: number;
+            total: number;
+        };
+        result: import("./task.interface").ITask[];
+    }>;
     findOne(id: string): Promise<import("./task.interface").ITask>;
     update(id: string, updateTaskDto: UpdateTaskDto, user: IUser): Promise<import("mongoose").UpdateWriteOpResult>;
     remove(id: string, user: IUser): Promise<{

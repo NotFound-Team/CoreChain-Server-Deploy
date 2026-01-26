@@ -3,7 +3,7 @@ import { UpdateProjectDto } from './dto/update-project.dto';
 import { IUser } from 'src/users/users.interface';
 import { ProjectDocument } from './schemas/project.schema';
 import { SoftDeleteModel } from 'soft-delete-plugin-mongoose';
-import mongoose from 'mongoose';
+import mongoose, { Types } from 'mongoose';
 import { TasksService } from 'src/tasks/tasks.service';
 import { IProject } from './project.interface';
 import { DepartmentsService } from 'src/departments/departments.service';
@@ -13,7 +13,7 @@ export declare class ProjectsService {
     private departmentService;
     constructor(projectModel: SoftDeleteModel<ProjectDocument>, taskService: TasksService, departmentService: DepartmentsService);
     progressCalculation(id: string): Promise<number>;
-    create(createProjectDto: CreateProjectDto, user: IUser): Promise<mongoose.Types.ObjectId>;
+    create(createProjectDto: CreateProjectDto, user: IUser): Promise<Types.ObjectId>;
     findAll(currentPage: number, limit: number, qs: string): Promise<{
         meta: {
             current: number;

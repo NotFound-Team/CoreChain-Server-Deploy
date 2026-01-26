@@ -63,7 +63,8 @@ let ProjectsService = class ProjectsService {
         filter.isDeleted = false;
         let offset = (+currentPage - 1) * +limit;
         let defaultLimit = +limit ? +limit : 10;
-        const totalItems = (await this.projectModel.find(filter)).length;
+        const allProjects = await this.projectModel.find(filter);
+        const totalItems = allProjects.length;
         const totalPages = Math.ceil(totalItems / defaultLimit);
         population.push({ path: 'tasks', select: '_id name' });
         population.push({ path: 'manager', select: '_id name email' });

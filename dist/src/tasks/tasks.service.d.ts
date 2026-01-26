@@ -25,6 +25,15 @@ export declare class TasksService {
         };
         result: ITask[];
     }>;
+    findAllByDay(currentPage: number, limit: number, startDate: string, dueDate: string, user: IUser): Promise<{
+        meta: {
+            current: number;
+            pageSize: number;
+            pages: number;
+            total: number;
+        };
+        result: ITask[];
+    }>;
     findOne(id: string): Promise<ITask>;
     update(id: string, updateTaskDto: UpdateTaskDto, user: IUser): Promise<mongoose.UpdateWriteOpResult>;
     remove(id: string, user: IUser): Promise<{

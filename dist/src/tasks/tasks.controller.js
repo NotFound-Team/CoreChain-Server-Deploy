@@ -28,6 +28,9 @@ let TasksController = class TasksController {
     findAll(currentPage, limit, qs) {
         return this.tasksService.findAll(+currentPage, +limit, qs);
     }
+    findAllByDay(currentPage, limit, startDate, dueDate, user) {
+        return this.tasksService.findAllByDay(+currentPage, +limit, startDate, dueDate, user);
+    }
     findOne(id) {
         return this.tasksService.findOne(id);
     }
@@ -56,6 +59,17 @@ __decorate([
     __metadata("design:paramtypes", [String, String, String]),
     __metadata("design:returntype", void 0)
 ], TasksController.prototype, "findAll", null);
+__decorate([
+    (0, common_1.Get)('by-day'),
+    __param(0, (0, common_1.Query)('current')),
+    __param(1, (0, common_1.Query)('pageSize')),
+    __param(2, (0, common_1.Query)('startDate')),
+    __param(3, (0, common_1.Query)('dueDate')),
+    __param(4, (0, customize_1.User)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String, String, String, Object]),
+    __metadata("design:returntype", void 0)
+], TasksController.prototype, "findAllByDay", null);
 __decorate([
     (0, common_1.Get)(':id'),
     __param(0, (0, common_1.Param)('id')),
