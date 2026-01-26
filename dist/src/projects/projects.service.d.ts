@@ -14,7 +14,7 @@ export declare class ProjectsService {
     constructor(projectModel: SoftDeleteModel<ProjectDocument>, taskService: TasksService, departmentService: DepartmentsService);
     progressCalculation(id: string): Promise<number>;
     create(createProjectDto: CreateProjectDto, user: IUser): Promise<Types.ObjectId>;
-    findAll(currentPage: number, limit: number, qs: string): Promise<{
+    findAll(currentPage: number, limit: number, startDate: string, endDate: string, qs: string): Promise<{
         meta: {
             current: number;
             pageSize: number;

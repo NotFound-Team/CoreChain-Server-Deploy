@@ -11,6 +11,8 @@ export declare const USER_ROLE = "USER";
 export declare const WORKING_HOURS_PER_DAY = 8;
 export declare const START_OF_MONTH: Date;
 export declare const END_OF_MONTH: Date;
+export declare const START_OF_YEAR: Date;
+export declare const END_OF_YEAR: Date;
 export declare const System: IUser;
 export declare class AllExceptionsFilter implements ExceptionFilter {
     catch(exception: unknown, host: ArgumentsHost): void;

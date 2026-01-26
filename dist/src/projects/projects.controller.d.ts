@@ -6,7 +6,7 @@ export declare class ProjectsController {
     private readonly projectsService;
     constructor(projectsService: ProjectsService);
     create(createProjectDto: CreateProjectDto, user: IUser): Promise<import("mongoose").Types.ObjectId>;
-    findAll(currentPage: string, limit: string, qs: string): Promise<{
+    findAll(currentPage: string, limit: string, startDate: string, endDate: string, qs: string): Promise<{
         meta: {
             current: number;
             pageSize: number;

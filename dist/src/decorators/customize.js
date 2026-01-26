@@ -6,7 +6,7 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.AllExceptionsFilter = exports.System = exports.END_OF_MONTH = exports.START_OF_MONTH = exports.WORKING_HOURS_PER_DAY = exports.USER_ROLE = exports.ADMIN_ROLE = exports.RESPONSE_MESSAGE = exports.SkipCheckPermission = exports.IS_PUBLIC_PERMISSION = exports.User = exports.Public = exports.IS_PUBLIC_KEY = void 0;
+exports.AllExceptionsFilter = exports.System = exports.END_OF_YEAR = exports.START_OF_YEAR = exports.END_OF_MONTH = exports.START_OF_MONTH = exports.WORKING_HOURS_PER_DAY = exports.USER_ROLE = exports.ADMIN_ROLE = exports.RESPONSE_MESSAGE = exports.SkipCheckPermission = exports.IS_PUBLIC_PERMISSION = exports.User = exports.Public = exports.IS_PUBLIC_KEY = void 0;
 const common_1 = require("@nestjs/common");
 exports.IS_PUBLIC_KEY = 'isPublic';
 const Public = () => (0, common_1.SetMetadata)(exports.IS_PUBLIC_KEY, true);
@@ -24,6 +24,8 @@ exports.USER_ROLE = 'USER';
 exports.WORKING_HOURS_PER_DAY = 8;
 exports.START_OF_MONTH = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
 exports.END_OF_MONTH = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0, 23, 59, 59, 999);
+exports.START_OF_YEAR = new Date(new Date().getFullYear(), 0, 1);
+exports.END_OF_YEAR = new Date(new Date().getFullYear(), 11, 31, 23, 59, 59, 999);
 exports.System = {
     _id: 'System',
     name: 'System',

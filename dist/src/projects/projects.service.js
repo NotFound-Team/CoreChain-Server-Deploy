@@ -23,6 +23,7 @@ const api_query_params_1 = __importDefault(require("api-query-params"));
 const mongoose_2 = __importDefault(require("mongoose"));
 const tasks_service_1 = require("../tasks/tasks.service");
 const departments_service_1 = require("../departments/departments.service");
+const customize_1 = require("../decorators/customize");
 let ProjectsService = class ProjectsService {
     constructor(projectModel, taskService, departmentService) {
         this.projectModel = projectModel;
@@ -56,13 +57,27 @@ let ProjectsService = class ProjectsService {
         await this.departmentService.update(department.toString(), { $push: { projectIds: newProject._id } });
         return newProject._id;
     }
-    async findAll(currentPage, limit, qs) {
+    async findAll(currentPage, limit, startDate, endDate, qs) {
         let { filter, skip, sort, projection, population = [] } = (0, api_query_params_1.default)(qs);
         delete filter.current;
         delete filter.pageSize;
         filter.isDeleted = false;
         let offset = (+currentPage - 1) * +limit;
         let defaultLimit = +limit ? +limit : 10;
+        if (startDate && !endDate) {
+            endDate = customize_1.END_OF_YEAR.toISOString();
+        }
+        if (!startDate && endDate) {
+            startDate = customize_1.START_OF_YEAR.toISOString();
+        }
+        if (startDate && endDate) {
+            filter.startDate = {
+                $gte: new Date(startDate),
+            };
+            filter.endDate = {
+                $lte: new Date(endDate),
+            };
+        }
         const allProjects = await this.projectModel.find(filter);
         const totalItems = allProjects.length;
         const totalPages = Math.ceil(totalItems / defaultLimit);
