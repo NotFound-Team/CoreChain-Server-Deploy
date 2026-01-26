@@ -128,7 +128,7 @@ let TasksService = class TasksService {
             createdAt: { $gte: customize_1.START_OF_MONTH, $lte: customize_1.END_OF_MONTH },
         });
     }
-    async findAll(currentPage, limit, qs) {
+    async findAll(currentPage, limit, startDate, dueDate, qs) {
         let { filter, skip, sort, projection, population = [] } = (0, api_query_params_1.default)(qs);
         console.log(filter);
         delete filter.current;
@@ -136,6 +136,16 @@ let TasksService = class TasksService {
         filter.isDeleted = false;
         let offset = (+currentPage - 1) * +limit;
         let defaultLimit = +limit ? +limit : 10;
+        if (!startDate && dueDate) {
+            startDate = customize_1.START_OF_MONTH.toISOString();
+        }
+        if (startDate && !dueDate) {
+            dueDate = customize_1.END_OF_MONTH.toISOString();
+        }
+        if (startDate && dueDate) {
+            filter.startDate = { $gte: startDate };
+            filter.dueDate = { $lte: dueDate };
+        }
         const totalItems = (await this.taskModel.find(filter)).length;
         const totalPages = Math.ceil(totalItems / defaultLimit);
         const result = await this.taskModel
@@ -144,40 +154,6 @@ let TasksService = class TasksService {
             .limit(defaultLimit)
             .sort(sort)
             .populate(population)
-            .exec();
-        return {
-            meta: {
-                current: currentPage,
-                pageSize: limit,
-                pages: totalPages,
-                total: totalItems,
-            },
-            result,
-        };
-    }
-    async findAllByDay(currentPage, limit, startDate, dueDate, user) {
-        if (!startDate) {
-            startDate = customize_1.START_OF_MONTH.toISOString();
-        }
-        if (!dueDate) {
-            dueDate = customize_1.END_OF_MONTH.toISOString();
-        }
-        let offset = (+currentPage - 1) * +limit;
-        let defaultLimit = +limit ? +limit : 10;
-        const totalItems = (await this.taskModel.find({
-            "startDate": { $gte: startDate },
-            "dueDate": { $lte: dueDate },
-            assignedTo: user._id,
-        })).length;
-        const totalPages = Math.ceil(totalItems / defaultLimit);
-        const result = await this.taskModel
-            .find({
-            "startDate": { $gte: startDate },
-            "dueDate": { $lte: dueDate },
-            assignedTo: user._id,
-        })
-            .skip(offset)
-            .limit(defaultLimit)
             .exec();
         return {
             meta: {

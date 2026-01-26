@@ -16,16 +16,7 @@ export declare class TasksService {
     private publishTaskCreatedEvent;
     countTask(status: number, id: string): Promise<number>;
     countTaskInMonth(status: number, id: string): Promise<number>;
-    findAll(currentPage: number, limit: number, qs: string): Promise<{
-        meta: {
-            current: number;
-            pageSize: number;
-            pages: number;
-            total: number;
-        };
-        result: ITask[];
-    }>;
-    findAllByDay(currentPage: number, limit: number, startDate: string, dueDate: string, user: IUser): Promise<{
+    findAll(currentPage: number, limit: number, startDate: string, dueDate: string, qs: string): Promise<{
         meta: {
             current: number;
             pageSize: number;

@@ -6,16 +6,7 @@ export declare class TasksController {
     private readonly tasksService;
     constructor(tasksService: TasksService);
     create(createTaskDto: CreateTaskDto, user: IUser): Promise<import("mongoose").Types.ObjectId>;
-    findAll(currentPage: string, limit: string, qs: string): Promise<{
-        meta: {
-            current: number;
-            pageSize: number;
-            pages: number;
-            total: number;
-        };
-        result: import("./task.interface").ITask[];
-    }>;
-    findAllByDay(currentPage: string, limit: string, startDate: string, dueDate: string, user: IUser): Promise<{
+    findAll(currentPage: string, limit: string, startDate: string, dueDate: string, qs: string): Promise<{
         meta: {
             current: number;
             pageSize: number;
