@@ -5,19 +5,17 @@ import { IUser } from 'src/users/users.interface';
 export declare class TasksController {
     private readonly tasksService;
     constructor(tasksService: TasksService);
-    create(createTaskDto: CreateTaskDto, user: IUser): Promise<import("mongoose").Types.ObjectId>;
-    findAll(currentPage: string, limit: string, startDate: string, dueDate: string, qs: string): Promise<{
+    create(createTaskDto: CreateTaskDto, user: IUser): Promise<string>;
+    findAll(query: any): Promise<{
         meta: {
             current: number;
             pageSize: number;
             pages: number;
             total: number;
         };
-        result: import("./task.interface").ITask[];
+        result: import("./entities/task.entity").Task[];
     }>;
     findOne(id: string): Promise<import("./task.interface").ITask>;
-    update(id: string, updateTaskDto: UpdateTaskDto, user: IUser): Promise<import("mongoose").UpdateWriteOpResult>;
-    remove(id: string, user: IUser): Promise<{
-        deleted: number;
-    }>;
+    update(id: string, updateTaskDto: UpdateTaskDto, user: IUser): Promise<import("./entities/task.entity").Task>;
+    remove(id: string, user: IUser): Promise<import("typeorm").UpdateResult>;
 }

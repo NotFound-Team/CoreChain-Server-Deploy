@@ -25,8 +25,8 @@ let TasksController = class TasksController {
     create(createTaskDto, user) {
         return this.tasksService.create(createTaskDto, user);
     }
-    findAll(currentPage, limit, startDate, dueDate, qs) {
-        return this.tasksService.findAll(+currentPage, +limit, startDate, dueDate, qs);
+    findAll(query) {
+        return this.tasksService.findAll(query);
     }
     findOne(id) {
         return this.tasksService.findOne(id);
@@ -49,13 +49,9 @@ __decorate([
 ], TasksController.prototype, "create", null);
 __decorate([
     (0, common_1.Get)(),
-    __param(0, (0, common_1.Query)('current')),
-    __param(1, (0, common_1.Query)('pageSize')),
-    __param(2, (0, common_1.Query)('startDate')),
-    __param(3, (0, common_1.Query)('dueDate')),
-    __param(4, (0, common_1.Query)()),
+    __param(0, (0, common_1.Query)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, String, String, String, String]),
+    __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", void 0)
 ], TasksController.prototype, "findAll", null);
 __decorate([

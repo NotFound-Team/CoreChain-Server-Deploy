@@ -15,11 +15,11 @@ class CreateMessageDto {
 }
 exports.CreateMessageDto = CreateMessageDto;
 __decorate([
-    (0, class_validator_1.IsMongoId)(),
+    (0, class_validator_1.IsUUID)('all'),
     __metadata("design:type", String)
 ], CreateMessageDto.prototype, "conversationId", void 0);
 __decorate([
-    (0, class_validator_1.IsMongoId)(),
+    (0, class_validator_1.IsUUID)('all'),
     __metadata("design:type", String)
 ], CreateMessageDto.prototype, "senderId", void 0);
 __decorate([

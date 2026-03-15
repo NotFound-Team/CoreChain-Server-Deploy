@@ -1,13 +1,12 @@
-import mongoose, { Types } from 'mongoose';
 export interface IContract {
-    _id: Types.ObjectId;
+    _id: string;
     contractCode: string;
     type: string;
     file: string;
     startDate: Date;
     endDate: Date;
     status: string;
-    employee: mongoose.Schema.Types.ObjectId | {
+    employee: string | {
         name: string;
         email: string;
     };
@@ -23,15 +22,15 @@ export interface IContract {
     updatedAt: Date;
     deletedAt: Date;
     createdBy: {
-        _id: mongoose.Schema.Types.ObjectId;
+        _id: string;
         email: string;
     };
     updatedBy: {
-        _id: mongoose.Schema.Types.ObjectId;
+        _id: string;
         email: string;
     };
     deletedBy: {
-        _id: mongoose.Schema.Types.ObjectId;
+        _id: string;
         email: string;
     };
 }

@@ -12,17 +12,15 @@ const personnel_service_1 = require("./personnel.service");
 const personnel_controller_1 = require("./personnel.controller");
 const users_module_1 = require("../users/users.module");
 const tasks_module_1 = require("../tasks/tasks.module");
-const mongoose_1 = require("@nestjs/mongoose");
-const salary_advance_schema_1 = require("./schemas/salary-advance.schema");
+const typeorm_1 = require("@nestjs/typeorm");
+const salary_advance_entity_1 = require("./entities/salary-advance.entity");
 let PersonnelModule = class PersonnelModule {
 };
 exports.PersonnelModule = PersonnelModule;
 exports.PersonnelModule = PersonnelModule = __decorate([
     (0, common_1.Module)({
         imports: [
-            mongoose_1.MongooseModule.forFeature([
-                { name: salary_advance_schema_1.SalaryAdvance.name, schema: salary_advance_schema_1.SalaryAdvanceSchema },
-            ]),
+            typeorm_1.TypeOrmModule.forFeature([salary_advance_entity_1.SalaryAdvance]),
             users_module_1.UsersModule,
             tasks_module_1.TasksModule,
         ],

@@ -15,17 +15,17 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.ChatService = void 0;
 const jwt_1 = require("@nestjs/jwt");
 const common_1 = require("@nestjs/common");
-const conversation_schema_1 = require("./schemas/conversation.schema");
-const mongoose_1 = require("@nestjs/mongoose");
-const message_schema_1 = require("./schemas/message.schema");
+const typeorm_1 = require("@nestjs/typeorm");
+const typeorm_2 = require("typeorm");
+const conversation_entity_1 = require("./entities/conversation.entity");
+const message_entity_1 = require("./entities/message.entity");
 const ws_service_1 = require("../ws/ws.service");
-const mongoose_2 = require("mongoose");
 const config_1 = require("@nestjs/config");
 const CHAT_NAME_SPACE = '/chat';
 let ChatService = class ChatService {
-    constructor(conversationModel, messageModel, wsService, jwtService, configService) {
-        this.conversationModel = conversationModel;
-        this.messageModel = messageModel;
+    constructor(conversationRepository, messageRepository, wsService, jwtService, configService) {
+        this.conversationRepository = conversationRepository;
+        this.messageRepository = messageRepository;
         this.wsService = wsService;
         this.jwtService = jwtService;
         this.configService = configService;
@@ -49,7 +49,7 @@ let ChatService = class ChatService {
             });
             client['user'] = payload;
             console.log('Client authenticated:', client.id);
-            this.clients.set(payload._id, client);
+            this.clients.set(payload._id.toString(), client);
         }
         catch (error) {
             console.log('Invalid token. Disconnecting client:', client.id);
@@ -74,62 +74,63 @@ let ChatService = class ChatService {
     async create(createConversationDto) {
         const { participants, groupName, admin } = createConversationDto;
         const conversationData = {
-            participants: participants.map((id) => new mongoose_2.Types.ObjectId(id)),
+            participants: participants.map((id) => ({ _id: id.toString() })),
         };
         if (groupName) {
             conversationData.groupName = groupName;
             conversationData.admin = {
-                _id: new mongoose_2.Types.ObjectId(admin._id),
+                _id: admin._id.toString(),
                 name: admin.name,
             };
         }
-        return await this.conversationModel.create(conversationData);
+        const newConv = this.conversationRepository.create(conversationData);
+        return await this.conversationRepository.save(newConv);
     }
     async getOrCreateDirectConversation({ userId, otherId, }) {
-        const userObjectId = new mongoose_2.Types.ObjectId(userId);
-        const otherObjectId = new mongoose_2.Types.ObjectId(otherId);
-        const existingConversation = await this.conversationModel.findOne({
-            participants: { $all: [userObjectId, otherObjectId] },
-            groupName: { $exists: false },
+        const qb = this.conversationRepository.createQueryBuilder('conversation')
+            .leftJoinAndSelect('conversation.participants', 'participant')
+            .where('conversation.groupName IS NULL');
+        const conversations = await qb.getMany();
+        const existingConversation = conversations.find(c => {
+            const pIds = c.participants.map(p => p._id);
+            return pIds.includes(userId) && pIds.includes(otherId) && pIds.length === 2;
         });
         if (existingConversation) {
             return existingConversation;
         }
-        const newConversation = await this.conversationModel.create({
-            participants: [userObjectId, otherObjectId],
+        const newConversation = this.conversationRepository.create({
+            participants: [{ _id: userId }, { _id: otherId }],
         });
-        return newConversation;
+        return await this.conversationRepository.save(newConversation);
     }
     async getConversationById({ conversationId }) {
-        const conversation = await this.conversationModel
-            .findById(conversationId)
-            .exec();
+        const conversation = await this.conversationRepository.findOne({ where: { _id: conversationId }, relations: ['participants'] });
         if (!conversation) {
             throw new common_1.NotFoundException(`Conversation with ID ${conversationId} not found.`);
         }
         return conversation;
     }
     async getRecentConversations({ userId, lastConversationId, }) {
-        const filter = { participants: new mongoose_2.Types.ObjectId(userId) };
+        let lastActivityFilter = null;
         if (lastConversationId) {
-            const lastConversation = await this.conversationModel
-                .findById(lastConversationId)
-                .exec();
-            if (lastConversation) {
-                filter.lastActivity = { $lt: lastConversation.lastActivity };
-            }
+            const lastConv = await this.conversationRepository.findOne({ where: { _id: lastConversationId } });
+            if (lastConv)
+                lastActivityFilter = lastConv.lastActivity;
         }
-        const conversations = (await this.conversationModel
-            .find(filter)
-            .sort({ lastActivity: -1 })
-            .limit(10)
-            .populate({ path: 'participants', select: 'name' })
-            .exec());
+        const qb = this.conversationRepository.createQueryBuilder('conversation')
+            .leftJoinAndSelect('conversation.participants', 'participant')
+            .where('participant._id = :userId', { userId })
+            .orderBy('conversation.lastActivity', 'DESC')
+            .take(10);
+        if (lastActivityFilter) {
+            qb.andWhere('conversation.lastActivity < :lastActivity', { lastActivity: lastActivityFilter });
+        }
+        const conversations = await qb.getMany();
         const conversationItems = await Promise.all(conversations.map(async (conv) => {
-            const latestMsgDoc = await this.messageModel
-                .findOne({ conversationId: conv._id })
-                .sort({ createdAt: -1 })
-                .exec();
+            const latestMsgDoc = await this.messageRepository.findOne({
+                where: { conversationId: conv._id, isDeleted: false },
+                order: { createdAt: 'DESC' }
+            });
             let name = '';
             let avatar = '';
             if (conv.groupName) {
@@ -137,14 +138,14 @@ let ChatService = class ChatService {
                 avatar = 'https://picsum.photos/200';
             }
             else {
-                const otherParticipant = conv.participants.find((p) => p._id.toString() !== userId);
+                const otherParticipant = conv.participants.find((p) => p._id !== userId);
                 if (otherParticipant) {
                     name = otherParticipant.name;
                     avatar = 'https://picsum.photos/200';
                 }
             }
             return {
-                id: conv._id.toString(),
+                id: conv._id,
                 avatar,
                 name,
                 timestamp: conv.lastActivity?.toISOString() || new Date().toISOString(),
@@ -157,55 +158,55 @@ let ChatService = class ChatService {
     }
     async createMessage(createMessageDto) {
         const { conversationId, senderId, content, attachments } = createMessageDto;
-        const conversation = await this.conversationModel.findById(conversationId);
+        const conversation = await this.conversationRepository.findOne({ where: { _id: conversationId }, relations: ['participants'] });
         if (!conversation) {
             throw new common_1.NotFoundException(`Conversation with ID ${conversationId} not found.`);
         }
-        const newMessage = await this.messageModel.create({
-            conversationId: new mongoose_2.Types.ObjectId(conversationId),
-            senderId: new mongoose_2.Types.ObjectId(senderId),
+        const newMessage = this.messageRepository.create({
+            conversationId: conversationId.toString(),
+            senderId: senderId.toString(),
             content,
             attachments,
             readBy: [],
             createdAt: new Date(),
             isDeleted: false,
         });
+        const savedMsg = await this.messageRepository.save(newMessage);
         conversation.lastActivity = new Date();
-        await conversation.save();
+        await this.conversationRepository.save(conversation);
         if (conversation.groupName) {
-            this.wsService.broadcastToRoom(CHAT_NAME_SPACE, conversationId, 'newMessage', newMessage);
+            this.wsService.broadcastToRoom(CHAT_NAME_SPACE, conversationId, 'newMessage', savedMsg);
         }
         else {
             const receiverIds = conversation.participants
-                .filter((participant) => participant.toString() !== senderId)
-                .map((id) => id.toString());
+                .filter((participant) => participant._id !== senderId)
+                .map((p) => p._id);
             if (receiverIds.length !== 1) {
                 console.error('Direct message error - Expected exactly 1 receiver, got:', { receiverIds });
-                throw new Error('Invalid conversation participants for direct message.');
             }
-            const receiverId = receiverIds[0].toString();
-            console.log(receiverId);
-            console.log();
-            this.emitToClient(receiverId, 'newMessage', newMessage);
+            else {
+                const receiverId = receiverIds[0];
+                this.emitToClient(receiverId, 'newMessage', savedMsg);
+            }
         }
-        return newMessage;
+        return savedMsg;
     }
     async getMessages({ conversationId, lastMessageId, }) {
-        const filter = { conversationId: new mongoose_2.Types.ObjectId(conversationId) };
+        let lastMsgFilter = null;
         if (lastMessageId) {
-            const lastMessage = await this.messageModel
-                .findById(lastMessageId)
-                .exec();
-            if (lastMessage) {
-                filter.createdAt = { $lt: lastMessage.createdAt };
-            }
+            const last = await this.messageRepository.findOne({ where: { _id: lastMessageId } });
+            if (last)
+                lastMsgFilter = last.createdAt;
         }
-        const messages = await this.messageModel
-            .find(filter)
-            .sort({ createdAt: -1 })
-            .limit(10)
-            .exec();
-        return messages;
+        const qb = this.messageRepository.createQueryBuilder('message')
+            .where('message.conversationId = :cid', { cid: conversationId })
+            .andWhere('message.isDeleted = false')
+            .orderBy('message.createdAt', 'DESC')
+            .take(10);
+        if (lastMsgFilter) {
+            qb.andWhere('message.createdAt < :lastAt', { lastAt: lastMsgFilter });
+        }
+        return await qb.getMany();
     }
     findAll() {
         return `This action returns all chat`;
@@ -220,9 +221,11 @@ let ChatService = class ChatService {
 exports.ChatService = ChatService;
 exports.ChatService = ChatService = __decorate([
     (0, common_1.Injectable)(),
-    __param(0, (0, mongoose_1.InjectModel)(conversation_schema_1.Conversation.name)),
-    __param(1, (0, mongoose_1.InjectModel)(message_schema_1.Message.name)),
-    __metadata("design:paramtypes", [Object, Object, ws_service_1.WsService,
+    __param(0, (0, typeorm_1.InjectRepository)(conversation_entity_1.Conversation)),
+    __param(1, (0, typeorm_1.InjectRepository)(message_entity_1.Message)),
+    __metadata("design:paramtypes", [typeorm_2.Repository,
+        typeorm_2.Repository,
+        ws_service_1.WsService,
         jwt_1.JwtService,
         config_1.ConfigService])
 ], ChatService);

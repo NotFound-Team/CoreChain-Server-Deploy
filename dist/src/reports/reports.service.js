@@ -24,7 +24,7 @@ let ReportsService = class ReportsService {
         this.personnelService = personnelService;
     }
     async employeesReport() {
-        const { result: departments } = await this.departmentService.findAll(1, 1000, '');
+        const { result: departments } = await this.departmentService.findAll({ limit: 1000 });
         const departmentReports = await Promise.all(departments.map(async (department) => {
             const employees = await this.userService.findByIds(department.employees.map((id) => id.toString()));
             return {
@@ -37,18 +37,17 @@ let ReportsService = class ReportsService {
     async employeesTurnover() {
         const startOfMonth = customize_1.START_OF_MONTH.toISOString();
         const endOfMonth = customize_1.END_OF_MONTH.toISOString();
-        const resignedQs = `deletedAt>${startOfMonth}&deletedAt<${endOfMonth}&isDeleted=true`;
-        const newQs = `createdAt>${startOfMonth}&createdAt<${endOfMonth}&isDeleted=false`;
-        const resignedEmployees = (await this.userService.findAll(1, 1000, resignedQs)).result;
-        const newEmployees = (await this.userService.findAll(1, 1000, newQs))
-            .result;
+        const resignedQs = `deletedAt>${startOfMonth}&deletedAt<${endOfMonth}&isDeleted=true&limit=1000`;
+        const newQs = `createdAt>${startOfMonth}&createdAt<${endOfMonth}&isDeleted=false&limit=1000`;
+        const resignedEmployees = (await this.userService.findAll(resignedQs)).result;
+        const newEmployees = (await this.userService.findAll(newQs)).result;
         return {
-            resignedEmployees,
-            newEmployees,
+            resignedEmployees: resignedEmployees,
+            newEmployees: newEmployees,
         };
     }
     async workingHours() {
-        const { result: departments } = await this.departmentService.findAll(1, 1000, '');
+        const { result: departments } = await this.departmentService.findAll({ limit: 1000 });
         const workingHoursReports = await Promise.all(departments.map(async (department) => {
             const employees = await this.userService.findByIds(department.employees.map((id) => id.toString()));
             const result = [];
@@ -69,7 +68,7 @@ let ReportsService = class ReportsService {
         return workingHoursReports;
     }
     async dayOff() {
-        const { result: departments } = await this.departmentService.findAll(1, 1000, '');
+        const { result: departments } = await this.departmentService.findAll({ limit: 1000 });
         const dayOffReports = await Promise.all(departments.map(async (department) => {
             const employees = await this.userService.findByIds(department.employees.map((id) => id.toString()));
             const result = [];
@@ -90,7 +89,7 @@ let ReportsService = class ReportsService {
         return dayOffReports;
     }
     async kpi() {
-        const { result: departments } = await this.departmentService.findAll(1, 1000, '');
+        const { result: departments } = await this.departmentService.findAll({ limit: 1000 });
         const KPIReports = await Promise.all(departments.map(async (department) => {
             const employees = await this.userService.findByIds(department.employees.map((id) => id.toString()));
             const result = [];
@@ -115,7 +114,7 @@ let ReportsService = class ReportsService {
         return KPIReports;
     }
     async salary() {
-        const { result: departments } = await this.departmentService.findAll(1, 1000, '');
+        const { result: departments } = await this.departmentService.findAll({ limit: 1000 });
         let amount = 0;
         const salaryReports = await Promise.all(departments.map(async (department) => {
             const employees = await this.userService.findByIds(department.employees.map((id) => id.toString()));

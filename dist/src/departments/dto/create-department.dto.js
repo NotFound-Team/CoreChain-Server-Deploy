@@ -8,13 +8,9 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CreateDepartmentDto = void 0;
 const class_validator_1 = require("class-validator");
-const mongoose_1 = __importDefault(require("mongoose"));
 class CreateDepartmentDto {
 }
 exports.CreateDepartmentDto = CreateDepartmentDto;
@@ -32,12 +28,10 @@ __decorate([
 ], CreateDepartmentDto.prototype, "description", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)({ message: 'Manager ID must not be empty !' }),
-    (0, class_validator_1.IsMongoId)(),
-    __metadata("design:type", mongoose_1.default.Schema.Types.ObjectId)
+    __metadata("design:type", String)
 ], CreateDepartmentDto.prototype, "manager", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)({ message: 'Employees ID must not be empty !' }),
-    (0, class_validator_1.IsMongoId)({ each: true }),
     __metadata("design:type", Array)
 ], CreateDepartmentDto.prototype, "employees", void 0);
 __decorate([
@@ -51,7 +45,6 @@ __decorate([
 ], CreateDepartmentDto.prototype, "budget", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)({ message: 'ProjectIds must not be empty !' }),
-    (0, class_validator_1.IsMongoId)({ each: true, message: 'ProjectIds has format mongo Id' }),
     __metadata("design:type", Array)
 ], CreateDepartmentDto.prototype, "projectIds", void 0);
 //# sourceMappingURL=create-department.dto.js.map

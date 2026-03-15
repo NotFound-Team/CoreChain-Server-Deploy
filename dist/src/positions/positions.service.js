@@ -17,21 +17,25 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.PositionsService = void 0;
 const common_1 = require("@nestjs/common");
-const mongoose_1 = require("@nestjs/mongoose");
-const position_schema_1 = require("./schemas/position.schema");
+const typeorm_1 = require("@nestjs/typeorm");
+const typeorm_2 = require("typeorm");
+const position_entity_1 = require("./entities/position.entity");
 const api_query_params_1 = __importDefault(require("api-query-params"));
-const mongoose_2 = __importDefault(require("mongoose"));
+const aqp_util_1 = require("../utils/aqp.util");
 let PositionsService = class PositionsService {
-    constructor(positionModel) {
-        this.positionModel = positionModel;
+    constructor(positionRepository) {
+        this.positionRepository = positionRepository;
+    }
+    isValidId(id) {
+        return /^[0-9a-fA-F]{24}$/.test(id) || /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
     }
     async create(createPositionDto, user) {
         const { title, description, parentId, level } = createPositionDto;
-        const isExist = await this.positionModel.findOne({ title: title });
+        const isExist = await this.positionRepository.findOne({ where: { title } });
         if (isExist) {
             throw new common_1.BadRequestException('Position already exist !');
         }
-        const newPosition = await this.positionModel.create({
+        const newPosition = this.positionRepository.create({
             title,
             description,
             parentId,
@@ -41,69 +45,75 @@ let PositionsService = class PositionsService {
                 email: user.email,
             },
         });
-        return newPosition._id;
+        const saved = await this.positionRepository.save(newPosition);
+        return saved._id;
     }
-    async findAll(currentPage, limit, qs) {
-        const { filter, skip, sort, projection, population } = (0, api_query_params_1.default)(qs);
-        delete filter.current;
-        delete filter.pageSize;
-        filter.isDeleted = false;
-        let offset = (+currentPage - 1) * +limit;
-        let defaultLimit = +limit ? +limit : 10;
-        const totalItems = (await this.positionModel.find(filter)).length;
+    async findAll(query) {
+        const { filter, skip, limit, sort } = (0, api_query_params_1.default)(query);
+        const convertedFilter = (0, aqp_util_1.aqpTypeormConverter)(filter);
+        let defaultLimit = limit || 10;
+        let offset = skip || 0;
+        const currentPage = Math.floor(offset / defaultLimit) + 1;
+        const [result, totalItems] = await this.positionRepository.findAndCount({
+            skip: offset,
+            take: defaultLimit,
+            where: { isDeleted: false, ...convertedFilter },
+            order: sort,
+        });
         const totalPages = Math.ceil(totalItems / defaultLimit);
-        const result = await this.positionModel
-            .find(filter)
-            .skip(offset)
-            .limit(defaultLimit)
-            .sort(sort)
-            .populate(population)
-            .exec();
         return {
             meta: {
                 current: currentPage,
-                pageSize: limit,
+                pageSize: defaultLimit,
                 pages: totalPages,
                 total: totalItems,
             },
-            result,
+            result: result,
         };
     }
     async findOne(id) {
-        if (!mongoose_2.default.Types.ObjectId.isValid(id)) {
+        if (!this.isValidId(id)) {
             throw new common_1.BadRequestException(`Invalid position ID`);
         }
-        const position = await this.positionModel.findById(id);
+        return (await this.positionRepository.findOne({ where: { _id: id } }));
     }
     async update(id, updatePositionDto, user) {
-        if (!mongoose_2.default.Types.ObjectId.isValid(id)) {
+        if (!this.isValidId(id)) {
             throw new common_1.BadRequestException(`Invalid position ID`);
         }
-        return this.positionModel.updateOne({ _id: id }, {
+        const pos = await this.positionRepository.findOne({ where: { _id: id } });
+        if (!pos)
+            throw new common_1.BadRequestException(`Invalid position ID`);
+        Object.assign(pos, {
             ...updatePositionDto,
             updatedBy: {
                 _id: user._id,
                 email: user.email,
             },
         });
+        return await this.positionRepository.save(pos);
     }
     async remove(id, user) {
-        if (!mongoose_2.default.Types.ObjectId.isValid(id)) {
+        if (!this.isValidId(id)) {
             throw new common_1.BadRequestException(`Invalid position ID`);
         }
-        await this.positionModel.updateOne({ _id: id }, {
-            deletedBy: {
-                _id: user._id,
-                email: user.email,
-            },
-        });
-        return this.positionModel.softDelete({ _id: id });
+        const pos = await this.positionRepository.findOne({ where: { _id: id } });
+        if (!pos)
+            throw new common_1.BadRequestException(`Invalid position ID`);
+        pos.updatedBy = {
+            _id: user._id,
+            email: user.email,
+        };
+        pos.isDeleted = true;
+        pos.deletedAt = new Date();
+        await this.positionRepository.save(pos);
+        return await this.positionRepository.softDelete({ _id: id });
     }
 };
 exports.PositionsService = PositionsService;
 exports.PositionsService = PositionsService = __decorate([
     (0, common_1.Injectable)(),
-    __param(0, (0, mongoose_1.InjectModel)(position_schema_1.Position.name)),
-    __metadata("design:paramtypes", [Object])
+    __param(0, (0, typeorm_1.InjectRepository)(position_entity_1.Position)),
+    __metadata("design:paramtypes", [typeorm_2.Repository])
 ], PositionsService);
 //# sourceMappingURL=positions.service.js.map

@@ -1,15 +1,15 @@
 import { CreatePositionDto } from './dto/create-position.dto';
 import { UpdatePositionDto } from './dto/update-position.dto';
 import { IUser } from 'src/users/users.interface';
-import { PositionDocument } from './schemas/position.schema';
-import { SoftDeleteModel } from 'soft-delete-plugin-mongoose';
-import mongoose from 'mongoose';
+import { Repository } from 'typeorm';
+import { Position } from './entities/position.entity';
 import { IPosition } from './position.interface';
 export declare class PositionsService {
-    private positionModel;
-    constructor(positionModel: SoftDeleteModel<PositionDocument>);
-    create(createPositionDto: CreatePositionDto, user: IUser): Promise<mongoose.Types.ObjectId>;
-    findAll(currentPage: number, limit: number, qs: string): Promise<{
+    private positionRepository;
+    constructor(positionRepository: Repository<Position>);
+    isValidId(id: string): boolean;
+    create(createPositionDto: CreatePositionDto, user: IUser): Promise<string>;
+    findAll(query: any): Promise<{
         meta: {
             current: number;
             pageSize: number;
@@ -18,9 +18,7 @@ export declare class PositionsService {
         };
         result: IPosition[];
     }>;
-    findOne(id: string): Promise<void>;
-    update(id: string, updatePositionDto: UpdatePositionDto, user: IUser): Promise<mongoose.UpdateWriteOpResult>;
-    remove(id: string, user: IUser): Promise<{
-        deleted: number;
-    }>;
+    findOne(id: string): Promise<IPosition>;
+    update(id: string, updatePositionDto: UpdatePositionDto, user: IUser): Promise<Position>;
+    remove(id: string, user: IUser): Promise<import("typeorm").UpdateResult>;
 }

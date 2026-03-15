@@ -86,7 +86,7 @@ let AuthService = class AuthService {
                 const userRole = user.role;
                 const temp = await this.rolesService.findOne(userRole._id);
                 const objUser = {
-                    ...user.toObject(),
+                    ...user,
                     permissions: temp?.permissions ?? [],
                 };
                 return objUser;

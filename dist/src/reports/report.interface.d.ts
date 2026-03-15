@@ -1,4 +1,3 @@
-import mongoose from 'mongoose';
 import { PublicUser } from 'src/users/users.interface';
 export interface IEmployeesDepartment {
     department: string;
@@ -11,7 +10,7 @@ export interface IEmployeesTurnover {
 export interface IWorkingHours {
     department: string;
     employees: {
-        _id: mongoose.Schema.Types.ObjectId;
+        _id: string;
         name: string;
         email: string;
         avatar: string;
@@ -21,7 +20,7 @@ export interface IWorkingHours {
 export interface IDayOff {
     department: string;
     employees: {
-        _id: mongoose.Schema.Types.ObjectId;
+        _id: string;
         name: string;
         email: string;
         avatar: string;
@@ -31,7 +30,7 @@ export interface IDayOff {
 export interface IKPI {
     department: string;
     employees: {
-        _id: mongoose.Schema.Types.ObjectId;
+        _id: string;
         name: string;
         email: string;
         avatar: string;
@@ -41,7 +40,7 @@ export interface IKPI {
 export interface ISalary {
     department: string;
     employees: {
-        _id: mongoose.Schema.Types.ObjectId;
+        _id: string;
         name: string;
         email: string;
         avatar: string;

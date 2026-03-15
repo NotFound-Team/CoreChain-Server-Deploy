@@ -1,4 +1,3 @@
-import mongoose from 'mongoose';
 export declare class AdjustmentDto {
     amount: number;
     reason: string;
@@ -8,11 +7,11 @@ export declare class CreateUserDto {
     name: string;
     email: string;
     password: string;
-    role: mongoose.Schema.Types.ObjectId;
+    role: string;
     workingHours: number;
     employeeId: string;
-    position: mongoose.Schema.Types.ObjectId;
-    department: mongoose.Schema.Types.ObjectId;
+    position: string;
+    department: string;
     netSalary: number;
     avatar: string;
     personalIdentificationNumber: string;
@@ -22,7 +21,7 @@ export declare class CreateUserDto {
     nationality: string;
     permanentAddress: string;
     biometricData: string;
-    employeeContractCode: mongoose.Schema.Types.ObjectId;
+    employeeContractCode: string;
     salary: number;
     allowances: number;
     adjustments: AdjustmentDto[];

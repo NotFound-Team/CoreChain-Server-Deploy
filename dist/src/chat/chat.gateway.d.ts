@@ -9,39 +9,23 @@ export declare class ChatGateway implements OnGatewayInit, OnGatewayConnection, 
     afterInit(server: Server): void;
     handleConnection(client: Socket): void;
     handleDisconnect(client: Socket): void;
-    create(createConversationDto: CreateConversationDto): Promise<import("mongoose").Document<unknown, {}, import("mongoose").Document<unknown, {}, import("./schemas/conversation.schema").Conversation> & import("./schemas/conversation.schema").Conversation & {
-        _id: import("mongoose").Types.ObjectId;
-    }> & import("mongoose").Document<unknown, {}, import("./schemas/conversation.schema").Conversation> & import("./schemas/conversation.schema").Conversation & {
-        _id: import("mongoose").Types.ObjectId;
-    }>;
+    create(createConversationDto: CreateConversationDto): Promise<import("./entities/conversation.entity").Conversation[]>;
     getById(data: {
         conversationId: string;
-    }): Promise<import("mongoose").Document<unknown, {}, import("mongoose").Document<unknown, {}, import("./schemas/conversation.schema").Conversation> & import("./schemas/conversation.schema").Conversation & {
-        _id: import("mongoose").Types.ObjectId;
-    }> & import("mongoose").Document<unknown, {}, import("./schemas/conversation.schema").Conversation> & import("./schemas/conversation.schema").Conversation & {
-        _id: import("mongoose").Types.ObjectId;
-    }>;
+    }): Promise<import("./entities/conversation.entity").Conversation>;
     getByUserIdAndOtherId(data: {
         userId: string;
         otherId: string;
-    }): Promise<import("mongoose").Document<unknown, {}, import("mongoose").Document<unknown, {}, import("./schemas/conversation.schema").Conversation> & import("./schemas/conversation.schema").Conversation & {
-        _id: import("mongoose").Types.ObjectId;
-    }> & import("mongoose").Document<unknown, {}, import("./schemas/conversation.schema").Conversation> & import("./schemas/conversation.schema").Conversation & {
-        _id: import("mongoose").Types.ObjectId;
-    }>;
+    }): Promise<import("./entities/conversation.entity").Conversation>;
     getRecentConversations(data: {
         userId: string;
         lastConversationId?: string;
     }): Promise<import("./declarations/conversationItem").ConversationItem[]>;
-    sendMessage(createMessageDto: CreateMessageDto): Promise<import("mongoose").Document<unknown, {}, import("mongoose").Document<unknown, {}, import("./schemas/message.schema").Message> & import("./schemas/message.schema").Message & {
-        _id: import("mongoose").Types.ObjectId;
-    }> & import("mongoose").Document<unknown, {}, import("./schemas/message.schema").Message> & import("./schemas/message.schema").Message & {
-        _id: import("mongoose").Types.ObjectId;
-    }>;
+    sendMessage(createMessageDto: CreateMessageDto): Promise<import("./entities/message.entity").Message>;
     getMessage(data: {
         conversationId: string;
         lastMessage?: string;
-    }): Promise<import("./schemas/message.schema").Message[]>;
+    }): Promise<import("./entities/message.entity").Message[]>;
     findAll(): string;
     findOne(id: number): string;
     remove(id: number): string;

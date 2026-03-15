@@ -1,21 +1,20 @@
-import mongoose, { Types } from 'mongoose';
 export interface IProject {
-    _id: Types.ObjectId;
+    _id: string;
     name: string;
     description: string;
     attachments: Array<string>;
-    department: mongoose.Schema.Types.ObjectId;
-    manager: mongoose.Schema.Types.ObjectId | {
-        _id: mongoose.Schema.Types.ObjectId;
+    department: string;
+    manager: string | {
+        _id: string;
         name: string;
         email: string;
     };
-    teamMembers: Array<mongoose.Schema.Types.ObjectId> | {
-        _id: mongoose.Schema.Types.ObjectId;
+    teamMembers: Array<string> | {
+        _id: string;
         name: string;
         email: string;
     };
-    tasks: mongoose.Schema.Types.ObjectId[];
+    tasks: string[];
     expenses: Array<{
         cost: number;
         reason: string;
@@ -32,15 +31,15 @@ export interface IProject {
     updatedAt: Date;
     deletedAt: Date;
     createdBy: {
-        _id: mongoose.Schema.Types.ObjectId;
+        _id: string;
         email: string;
     };
     updatedBy: {
-        _id: mongoose.Schema.Types.ObjectId;
+        _id: string;
         email: string;
     };
     deletedBy: {
-        _id: mongoose.Schema.Types.ObjectId;
+        _id: string;
         email: string;
     };
 }

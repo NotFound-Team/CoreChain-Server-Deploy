@@ -17,20 +17,22 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.UsersService = void 0;
 const common_1 = require("@nestjs/common");
-const mongoose_1 = require("@nestjs/mongoose");
-const user_schema_1 = require("./schemas/user.schema");
+const typeorm_1 = require("@nestjs/typeorm");
+const typeorm_2 = require("typeorm");
+const user_entity_1 = require("./entities/user.entity");
 const config_1 = require("@nestjs/config");
 const bcryptjs_1 = require("bcryptjs");
-const api_query_params_1 = __importDefault(require("api-query-params"));
-const mongoose_2 = __importDefault(require("mongoose"));
 const blockchain_service_1 = require("../blockchain/blockchain.service");
 const security_service_1 = require("../security/security.service");
 const departments_service_1 = require("../departments/departments.service");
 const customize_1 = require("../decorators/customize");
 const cache_manager_1 = require("@nestjs/cache-manager");
+const api_query_params_1 = __importDefault(require("api-query-params"));
+const aqp_util_1 = require("../utils/aqp.util");
 let UsersService = class UsersService {
-    constructor(userModel, configService, blockchainService, securityService, departmentService, cacheManager) {
-        this.userModel = userModel;
+    constructor(userRepository, dataSource, configService, blockchainService, securityService, departmentService, cacheManager) {
+        this.userRepository = userRepository;
+        this.dataSource = dataSource;
         this.configService = configService;
         this.blockchainService = blockchainService;
         this.securityService = securityService;
@@ -38,12 +40,11 @@ let UsersService = class UsersService {
         this.cacheManager = cacheManager;
         this.getHashPassword = (password) => {
             const salt = (0, bcryptjs_1.genSaltSync)(10);
-            const hash = (0, bcryptjs_1.hashSync)(password, salt);
-            return hash;
+            return (0, bcryptjs_1.hashSync)(password, salt);
         };
         this.getUserByToken = async (refreshToken) => {
             try {
-                return await this.userModel.findOne({ refreshToken });
+                return await this.userRepository.findOne({ where: { refreshToken } });
             }
             catch (error) {
                 console.log(error);
@@ -51,50 +52,32 @@ let UsersService = class UsersService {
         };
         this.updateUserToken = async (refreshToken, _id) => {
             try {
-                return await this.userModel
-                    .updateOne({ _id }, {
-                    refreshToken,
-                })
-                    .populate({
-                    path: 'role',
-                    select: { name: 1 },
-                });
+                await this.userRepository.update(_id, { refreshToken });
+                return await this.userRepository.findOne({ where: { _id }, relations: ['role'] });
             }
             catch (error) {
                 console.log(error);
             }
         };
         this.PRIVATE_FIELDS = [
-            'netSalary',
-            'personalIdentificationNumber',
-            'dateOfBirth',
-            'personalPhoneNumber',
-            'male',
-            'nationality',
-            'permanentAddress',
-            'biometricData',
-            'employeeContractCode',
-            'salary',
-            'allowances',
-            'adjustments',
-            'healthCheckRecordCode',
-            'medicalHistory',
-            'healthInsuranceCode',
-            'lifeInsuranceCode',
-            'personalTaxIdentificationNumber',
-            'socialInsuranceNumber',
-            'backAccountNumber',
+            'netSalary', 'personalIdentificationNumber', 'dateOfBirth', 'personalPhoneNumber',
+            'male', 'nationality', 'permanentAddress', 'biometricData', 'employeeContractCode',
+            'salary', 'allowances', 'adjustments', 'healthCheckRecordCode', 'medicalHistory',
+            'healthInsuranceCode', 'lifeInsuranceCode', 'personalTaxIdentificationNumber',
+            'socialInsuranceNumber', 'backAccountNumber',
         ];
+    }
+    isValidId(id) {
+        return /^[0-9a-fA-F]{24}$/.test(id) || /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
     }
     isValidPassword(password, hashPassword) {
         return (0, bcryptjs_1.compareSync)(password, hashPassword);
     }
     findOneByUsername(username) {
-        return this.userModel
-            .findOne({
-            email: username,
-        })
-            .populate({ path: 'role', select: { name: 1 } });
+        return this.userRepository.findOne({
+            where: { email: username, isDeleted: false },
+            relations: ['role'],
+        });
     }
     splitData(updateUserDto) {
         const publicData = {};
@@ -123,166 +106,130 @@ let UsersService = class UsersService {
         await this.cacheManager.del(`employee:${id}`);
     }
     async create(createUserDto, user) {
-        const session = await this.userModel.startSession();
-        session.startTransaction();
+        const queryRunner = this.dataSource.createQueryRunner();
+        await queryRunner.connect();
+        await queryRunner.startTransaction();
         try {
-            const isExist = await this.userModel.findOne({ email: createUserDto.email });
+            const isExist = await queryRunner.manager.findOne(user_entity_1.User, { where: { email: createUserDto.email } });
             if (isExist)
                 throw new common_1.BadRequestException('Email already exists');
             const hashPassword = this.getHashPassword(createUserDto.password);
-            const [newUser] = await this.userModel.create([{
-                    ...createUserDto,
-                    password: hashPassword,
-                    createdBy: { _id: user._id, email: user.email }
-                }], { session });
+            const { employeeId, privateData, publicData } = this.splitData(createUserDto);
+            const newUser = queryRunner.manager.create(user_entity_1.User, {
+                ...publicData,
+                password: hashPassword,
+                createdBy: { _id: user._id, email: user.email },
+            });
+            const savedUser = await queryRunner.manager.save(newUser);
             if (createUserDto.department) {
                 const department = await this.departmentService.findOne(createUserDto.department.toString());
-                department.employees.push(newUser._id);
-                await this.departmentService.update(department._id.toString(), {
-                    employees: department.employees,
-                }, customize_1.System);
+                if (department) {
+                    if (!department.employees)
+                        department.employees = [];
+                    department.employees.push(savedUser._id);
+                    await this.departmentService.update(department._id.toString(), { employees: department.employees }, customize_1.System);
+                }
             }
-            const { employeeId, privateData } = this.splitData(createUserDto);
             try {
                 const txHash = await this.blockchainService.addEmployee(privateData, employeeId);
-                await this.userModel.updateOne({ _id: newUser._id }, { txHash }, { session });
+                await queryRunner.manager.update(user_entity_1.User, savedUser._id, { txHash });
             }
             catch (blockchainError) {
                 throw new Error('Blockchain transaction failed: ' + blockchainError.message);
             }
-            await session.commitTransaction();
-            return newUser._id;
+            await queryRunner.commitTransaction();
+            return savedUser._id;
         }
         catch (error) {
-            await session.abortTransaction();
+            await queryRunner.rollbackTransaction();
             throw new common_1.BadRequestException(error.message);
         }
         finally {
-            session.endSession();
+            await queryRunner.release();
         }
     }
-    async findAll(currentPage, limit, qs) {
-        let { filter, skip, sort, projection, population } = (0, api_query_params_1.default)(qs);
-        console.log(filter);
-        delete filter.current;
-        delete filter.pageSize;
-        let offset = (+currentPage - 1) * +limit;
-        let defaultLimit = +limit ? +limit : 10;
-        const totalItems = await this.userModel.countDocuments(filter);
+    async findAll(query) {
+        const { filter, skip, limit, sort } = (0, api_query_params_1.default)(query);
+        const convertedFilter = (0, aqp_util_1.aqpTypeormConverter)(filter);
+        let defaultLimit = limit || 10;
+        let offset = skip || 0;
+        const currentPage = Math.floor(offset / defaultLimit) + 1;
+        const [result, totalItems] = await this.userRepository.findAndCount({
+            skip: offset,
+            take: defaultLimit,
+            where: { isDeleted: false, ...convertedFilter },
+            order: sort,
+            relations: ['role', 'position', 'department'],
+        });
         const totalPages = Math.ceil(totalItems / defaultLimit);
-        if (!population)
-            population = [];
-        population.push({ path: 'role', select: '_id name' });
-        population.push({ path: 'position', select: '_id title' });
-        population.push({ path: 'department', select: '_id name' });
-        const result = await this.userModel
-            .find(filter)
-            .select('-password -refreshToken')
-            .skip(offset)
-            .limit(defaultLimit)
-            .sort(sort)
-            .populate(population)
-            .exec();
         return {
             meta: {
                 current: currentPage,
-                pageSize: limit,
+                pageSize: defaultLimit,
                 pages: totalPages,
                 total: totalItems,
             },
-            result,
+            result: result.map(u => {
+                const { password, refreshToken, ...publicUser } = u;
+                return publicUser;
+            }),
         };
     }
     async findAllByIds(ids) {
-        if (!ids || ids.length === 0) {
+        if (!ids || ids.length === 0)
             return [];
-        }
-        const invalidIds = ids.filter((id) => !mongoose_2.default.Types.ObjectId.isValid(id));
-        if (invalidIds.length > 0) {
+        const invalidIds = ids.filter((id) => !this.isValidId(id));
+        if (invalidIds.length > 0)
             throw new common_1.BadRequestException(`Invalid user IDs: ${invalidIds.join(', ')}`);
-        }
-        return await this.userModel
-            .find({
-            _id: { $in: ids },
-            isDeleted: false,
-        })
-            .select('-password -refreshToken')
-            .populate([
-            { path: 'role', select: { name: 1, _id: 1 } },
-            { path: 'position', select: '_id title' },
-            { path: 'department', select: '_id name' },
-        ])
-            .lean();
+        const users = await this.userRepository.createQueryBuilder('user')
+            .leftJoinAndSelect('user.role', 'role')
+            .leftJoinAndSelect('user.position', 'position')
+            .leftJoinAndSelect('user.department', 'department')
+            .where('user._id IN (:...ids)', { ids })
+            .andWhere('user.isDeleted = :isDeleted', { isDeleted: false })
+            .getMany();
+        return users.map(u => {
+            const { password, refreshToken, ...publicUser } = u;
+            return publicUser;
+        });
     }
     async findOnePublic(id) {
-        if (!mongoose_2.default.Types.ObjectId.isValid(id)) {
+        if (!this.isValidId(id))
             throw new common_1.BadRequestException(`Invalid user ID`);
-        }
-        const employee = await this.userModel
-            .findOne({
-            _id: id,
-            isDeleted: false,
-        })
-            .select('name avatar');
-        return employee;
+        const user = await this.userRepository.findOne({
+            where: { _id: id, isDeleted: false },
+            select: ['_id', 'name', 'avatar'],
+        });
+        return user;
     }
     async findOne(id) {
-        if (!mongoose_2.default.Types.ObjectId.isValid(id)) {
+        if (!this.isValidId(id))
             throw new common_1.BadRequestException(`Invalid user ID`);
+        const user = await this.userRepository.findOne({
+            where: { _id: id, isDeleted: false },
+            relations: ['role', 'position', 'department'],
+        });
+        if (user) {
+            const { password, refreshToken, ...publicUser } = user;
+            return publicUser;
         }
-        const employee = (await this.userModel
-            .findOne({
-            _id: id,
-            isDeleted: false,
-        })
-            .select('-password -refreshToken')
-            .populate([
-            { path: 'role', select: { name: 1, _id: 1 } },
-            { path: 'position', select: '_id title' },
-            { path: 'department', select: '_id name' },
-        ])
-            .lean());
-        return employee;
+        return null;
     }
     async findByIds(ids) {
-        if (!ids || ids.length === 0) {
-            return [];
-        }
-        const invalidIds = ids.filter((id) => !mongoose_2.default.Types.ObjectId.isValid(id));
-        if (invalidIds.length > 0) {
-            throw new common_1.BadRequestException(`Invalid user IDs: ${invalidIds.join(', ')}`);
-        }
-        return await this.userModel
-            .find({
-            _id: { $in: ids },
-            isDeleted: false,
-        })
-            .select('-password -refreshToken')
-            .populate([
-            { path: 'role', select: { name: 1, _id: 1 } },
-            { path: 'position', select: '_id title' },
-            { path: 'department', select: '_id name' },
-        ]);
+        return this.findAllByIds(ids);
     }
     async findPrivateOne(id) {
-        if (!mongoose_2.default.Types.ObjectId.isValid(id)) {
+        if (!this.isValidId(id))
             throw new common_1.BadRequestException(`Invalid user ID`);
-        }
         const cachedEmployee = await this.getCached(id);
         if (cachedEmployee) {
             common_1.Logger.log('Got employee from cache !');
             return cachedEmployee;
         }
         else {
-            const publicEmployee = await this.userModel
-                .findById(id)
-                .select('-password -refreshToken')
-                .populate([
-                { path: 'role', select: { name: 1, _id: 1 } },
-                { path: 'position', select: '_id title' },
-                { path: 'department', select: '_id name' },
-            ])
-                .lean();
+            const publicEmployee = await this.findOne(id);
+            if (!publicEmployee)
+                throw new common_1.BadRequestException('User not found');
             const privateEmployee = await this.blockchainService.getEmployee(publicEmployee.employeeId);
             const employee = {
                 ...publicEmployee,
@@ -294,182 +241,131 @@ let UsersService = class UsersService {
         }
     }
     async update(updateUserDto, user, id) {
-        if (!mongoose_2.default.Types.ObjectId.isValid(id)) {
+        if (!this.isValidId(id))
             throw new common_1.BadRequestException(`Invalid user ID`);
-        }
-        const idExist = await this.userModel.findOne({
-            _id: id,
-        });
+        const idExist = await this.userRepository.findOne({ where: { _id: id } });
         if (!idExist)
             throw new common_1.BadRequestException('User not found !');
-        console.log('Employee ID: >>>>>>', idExist.employeeId);
-        console.log('Update Employee ID: >>>>>>', updateUserDto.employeeId);
         if (idExist.employeeId !== updateUserDto.employeeId) {
             throw new common_1.BadRequestException('You cannot update employee ID !');
         }
         let txHash;
         const { employeeId, privateData, publicData } = this.splitData(updateUserDto);
-        console.log('Private Data: >>>>>>', privateData);
-        console.log('Public Data: >>>>>>', publicData);
         if (Object.keys(privateData).length !== 0) {
-            if (!employeeId) {
+            if (!employeeId)
                 throw new common_1.BadRequestException('Can not update. Must have employee ID !');
-            }
-            const updateData = {
-                ...privateData,
-            };
             try {
-                txHash = await this.blockchainService.updateEmployee(updateData, employeeId);
-                console.log(txHash);
+                txHash = await this.blockchainService.updateEmployee(privateData, employeeId);
             }
             catch (error) {
                 throw error;
             }
         }
-        if (updateUserDto.department && updateUserDto.department !== idExist.department) {
-            const department = await this.departmentService.findOne(idExist.department.toString());
-            department.employees = department.employees.filter((empId) => empId.toString() !== idExist._id.toString());
-            await this.departmentService.update(department._id.toString(), {
-                employees: department.employees,
-            }, customize_1.System);
-            const newDepartment = await this.departmentService.findOne(updateUserDto.department.toString());
-            newDepartment.employees.push(idExist._id);
-            await this.departmentService.update(newDepartment._id.toString(), {
-                employees: newDepartment.employees,
-            }, user);
-        }
+        const relationsToUpdate = {};
+        if (publicData.role)
+            relationsToUpdate.role = { _id: publicData.role };
+        if (publicData.department)
+            relationsToUpdate.department = { _id: publicData.department };
+        if (publicData.position)
+            relationsToUpdate.position = { _id: publicData.position };
+        Object.assign(idExist, {
+            ...publicData,
+            ...relationsToUpdate,
+            txHash: txHash || idExist.txHash,
+            updatedBy: { _id: user._id, email: user.email },
+        });
+        await this.userRepository.save(idExist);
         const cachedEmployee = await this.getCached(id);
         if (cachedEmployee) {
             await this.delCached(id);
         }
-        return await this.userModel.updateOne({
-            _id: id,
-        }, {
-            ...publicData,
-            txHash,
-            updatedBy: {
-                _id: user._id,
-                email: user.email,
-            },
-        });
+        return idExist;
     }
     async updateWorkingHours(updateWorkingHoursDto, user, id) {
-        if (!mongoose_2.default.Types.ObjectId.isValid(id)) {
+        if (!this.isValidId(id))
             throw new common_1.BadRequestException(`Invalid user ID`);
-        }
-        const idExist = await this.userModel.findOne({
-            _id: id,
-        });
+        const idExist = await this.userRepository.findOne({ where: { _id: id } });
         if (!idExist)
             throw new common_1.BadRequestException('User not found !');
-        const empl = await this.findOne(id);
-        return await this.userModel.updateOne({
-            _id: id,
-        }, {
-            workingHours: empl.workingHours + updateWorkingHoursDto.workingHours,
-            updatedBy: {
-                _id: user._id,
-                email: user.email,
-            },
-        });
+        idExist.workingHours += updateWorkingHoursDto.workingHours;
+        idExist.updatedBy = { _id: user._id, email: user.email };
+        return await this.userRepository.save(idExist);
     }
     async updatePublicUser(updatePublicUserDto, user, id) {
-        if (!mongoose_2.default.Types.ObjectId.isValid(id)) {
+        if (!this.isValidId(id))
             throw new common_1.BadRequestException(`Invalid user ID`);
-        }
-        const idExist = await this.userModel.findOne({
-            _id: id,
-        });
+        const idExist = await this.userRepository.findOne({ where: { _id: id } });
         if (!idExist)
             throw new common_1.BadRequestException('User not found !');
-        const emailExist = await this.userModel.findOne({
-            email: updatePublicUserDto.email,
-        });
-        if (emailExist && emailExist.id !== id)
-            throw new common_1.BadRequestException('Email already exist !');
-        if (updatePublicUserDto.department) {
-            const employee = await this.userModel.findOne({ _id: id }).lean();
-            console.log(employee);
-            const department = await this.departmentService.findOne(employee.department.toString());
-            department.employees = department.employees.filter((empId) => empId.toString() !== employee._id.toString());
-            await this.departmentService.update(department._id.toString(), {
-                employees: department.employees,
-            }, customize_1.System);
-            const newDepartment = await this.departmentService.findOne(updatePublicUserDto.department.toString());
-            newDepartment.employees.push(employee._id);
-            await this.departmentService.update(newDepartment._id.toString(), {
-                employees: newDepartment.employees,
-            }, user);
+        if (updatePublicUserDto.email) {
+            const emailExist = await this.userRepository.findOne({ where: { email: updatePublicUserDto.email } });
+            if (emailExist && emailExist._id !== id)
+                throw new common_1.BadRequestException('Email already exist !');
         }
-        return this.userModel.updateOne({ _id: id }, {
-            updatedBy: {
-                _id: user._id,
-                email: user.email,
-            },
+        const relationsToUpdate = {};
+        if (updatePublicUserDto.department)
+            relationsToUpdate.department = { _id: updatePublicUserDto.department };
+        Object.assign(idExist, {
             ...updatePublicUserDto,
+            ...relationsToUpdate,
+            updatedBy: { _id: user._id, email: user.email },
         });
+        return await this.userRepository.save(idExist);
     }
     async updateFcmToken(userId, fcmToken) {
-        if (!mongoose_2.default.Types.ObjectId.isValid(userId)) {
+        if (!this.isValidId(userId))
             throw new common_1.BadRequestException(`Invalid user ID`);
-        }
-        const user = await this.userModel.findById(userId);
-        if (!user) {
+        const user = await this.userRepository.findOne({ where: { _id: userId } });
+        if (!user)
             throw new common_1.BadRequestException('User not found');
-        }
-        await this.userModel.updateOne({ _id: userId }, { fcmToken: fcmToken });
-        return {
-            message: 'FCM token updated successfully',
-            userId: userId,
-        };
+        user.fcmToken = fcmToken;
+        await this.userRepository.save(user);
+        return { message: 'FCM token updated successfully', userId: userId };
     }
     async changePassword(updatePassword, thisUser) {
         const { id, oldPassword, newPassword } = updatePassword;
-        const user = await this.userModel.findOne({ _id: id });
-        if (thisUser._id !== user._id.toString()) {
+        const user = await this.userRepository.findOne({ where: { _id: id } });
+        if (thisUser._id !== user?._id)
             throw new common_1.BadRequestException('You only change your password !');
-        }
-        if (!user) {
+        if (!user)
             throw new common_1.BadRequestException('User Not Found !');
-        }
-        if (!this.isValidPassword(oldPassword, user.password)) {
+        if (!this.isValidPassword(oldPassword, user.password || '')) {
             throw new common_1.BadRequestException('Password is Incorrect !');
         }
-        else {
-            await this.userModel.updateOne({ _id: id }, { password: this.getHashPassword(newPassword) });
-            return 'Update Password Successfully !';
-        }
+        user.password = this.getHashPassword(newPassword);
+        await this.userRepository.save(user);
+        return 'Update Password Successfully !';
     }
     async remove(id, user) {
-        if (!mongoose_2.default.Types.ObjectId.isValid(id)) {
+        if (!this.isValidId(id))
             throw new common_1.BadRequestException(`Invalid user ID`);
-        }
-        const foundUser = await this.userModel.findById(id);
+        const foundUser = await this.userRepository.findOne({ where: { _id: id } });
+        if (!foundUser)
+            throw new common_1.BadRequestException('User not found');
         const ADMIN_EMAIL = this.configService.get('ADMIN_EMAIL');
-        if (foundUser && foundUser.email === ADMIN_EMAIL)
+        if (foundUser.email === ADMIN_EMAIL)
             throw new common_1.BadRequestException('Cannot delete admin account !');
-        await this.userModel.updateOne({ _id: id }, {
-            deletedBy: {
-                _id: user._id,
-                email: user.email,
-            },
-        });
-        const employee = await this.userModel
-            .findOne({ _id: id })
-            .select('employeeId');
-        console.log(employee);
-        await this.blockchainService.deactivateEmployee(employee.employeeId);
-        return this.userModel.softDelete({
-            _id: id,
-        });
+        foundUser.deletedBy = { _id: user._id, email: user.email };
+        foundUser.isDeleted = true;
+        foundUser.deletedAt = new Date();
+        await this.userRepository.save(foundUser);
+        try {
+            await this.blockchainService.deactivateEmployee(foundUser.employeeId);
+        }
+        catch (e) {
+            common_1.Logger.error(e);
+        }
+        return foundUser;
     }
 };
 exports.UsersService = UsersService;
 exports.UsersService = UsersService = __decorate([
     (0, common_1.Injectable)(),
-    __param(0, (0, mongoose_1.InjectModel)(user_schema_1.User.name)),
-    __param(5, (0, common_1.Inject)(cache_manager_1.CACHE_MANAGER)),
-    __metadata("design:paramtypes", [Object, config_1.ConfigService,
+    __param(0, (0, typeorm_1.InjectRepository)(user_entity_1.User)),
+    __param(6, (0, common_1.Inject)(cache_manager_1.CACHE_MANAGER)),
+    __metadata("design:paramtypes", [typeorm_2.Repository,
+        typeorm_2.DataSource,
+        config_1.ConfigService,
         blockchain_service_1.BlockchainService,
         security_service_1.SecurityService,
         departments_service_1.DepartmentsService, Object])

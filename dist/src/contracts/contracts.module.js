@@ -10,17 +10,15 @@ exports.ContractsModule = void 0;
 const common_1 = require("@nestjs/common");
 const contracts_service_1 = require("./contracts.service");
 const contracts_controller_1 = require("./contracts.controller");
-const mongoose_1 = require("@nestjs/mongoose");
-const contract_schema_1 = require("./schemas/contract.schema");
+const typeorm_1 = require("@nestjs/typeorm");
+const contract_entity_1 = require("./entities/contract.entity");
 let ContractsModule = class ContractsModule {
 };
 exports.ContractsModule = ContractsModule;
 exports.ContractsModule = ContractsModule = __decorate([
     (0, common_1.Module)({
         imports: [
-            mongoose_1.MongooseModule.forFeature([
-                { name: contract_schema_1.Contract.name, schema: contract_schema_1.ContractSchema },
-            ]),
+            typeorm_1.TypeOrmModule.forFeature([contract_entity_1.Contract]),
         ],
         controllers: [contracts_controller_1.ContractsController],
         providers: [contracts_service_1.ContractsService],

@@ -17,49 +17,50 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.RolesService = void 0;
 const common_1 = require("@nestjs/common");
-const mongoose_1 = require("@nestjs/mongoose");
-const role_schema_1 = require("./schemas/role.schema");
-const mongoose_2 = __importDefault(require("mongoose"));
-const api_query_params_1 = __importDefault(require("api-query-params"));
+const typeorm_1 = require("@nestjs/typeorm");
+const typeorm_2 = require("typeorm");
+const role_entity_1 = require("./entities/role.entity");
 const customize_1 = require("../decorators/customize");
+const api_query_params_1 = __importDefault(require("api-query-params"));
+const aqp_util_1 = require("../utils/aqp.util");
 let RolesService = class RolesService {
-    constructor(roleModel) {
-        this.roleModel = roleModel;
+    constructor(roleRepository) {
+        this.roleRepository = roleRepository;
     }
     async create(createRoleDto) {
         const { name, description, isActive, permissions } = createRoleDto;
-        const existRole = await this.roleModel.findOne({ name });
+        const existRole = await this.roleRepository.findOne({ where: { name } });
         if (existRole) {
             throw new common_1.BadRequestException('This role already exist !');
         }
-        const newRole = await this.roleModel.create({
+        const permissionEntities = permissions?.map((id) => ({ _id: id })) || [];
+        const newRole = this.roleRepository.create({
             name,
             description,
             isActive,
-            permissions,
+            permissions: permissionEntities,
         });
-        return newRole._id;
+        const saved = await this.roleRepository.save(newRole);
+        return saved._id;
     }
-    async findAll(currentPage, limit, qs) {
-        const { filter, skip, sort, projection, population } = (0, api_query_params_1.default)(qs);
-        delete filter.current;
-        delete filter.pageSize;
-        let offset = (+currentPage - 1) * +limit;
-        let defaultLimit = +limit ? +limit : 10;
-        const totalItems = (await this.roleModel.find(filter)).length;
+    async findAll(query) {
+        const { filter, skip, limit, sort } = (0, api_query_params_1.default)(query);
+        const convertedFilter = (0, aqp_util_1.aqpTypeormConverter)(filter);
+        let defaultLimit = limit || 10;
+        let offset = skip || 0;
+        const currentPage = Math.floor(offset / defaultLimit) + 1;
+        const [result, totalItems] = await this.roleRepository.findAndCount({
+            skip: offset,
+            take: defaultLimit,
+            where: convertedFilter,
+            order: sort,
+            relations: ['permissions'],
+        });
         const totalPages = Math.ceil(totalItems / defaultLimit);
-        const result = await this.roleModel
-            .find(filter)
-            .skip(offset)
-            .limit(defaultLimit)
-            .sort(sort)
-            .populate(population)
-            .select(projection)
-            .exec();
         return {
             meta: {
                 current: currentPage,
-                pageSize: limit,
+                pageSize: defaultLimit,
                 pages: totalPages,
                 total: totalItems,
             },
@@ -67,48 +68,53 @@ let RolesService = class RolesService {
         };
     }
     async findOne(id) {
-        if (!mongoose_2.default.Types.ObjectId.isValid(id)) {
+        const role = await this.roleRepository.findOne({
+            where: { _id: id },
+            relations: ['permissions'],
+        });
+        if (!role) {
             throw new common_1.BadRequestException(`Not found role with id=${id}`);
         }
-        const role = await this.roleModel
-            .findOne({ _id: id })
-            .populate([
-            { path: 'permissions', select: '_id apiPath name method module' },
-        ]);
         return role;
     }
     async update(id, updateRoleDto, user) {
-        if (!mongoose_2.default.Types.ObjectId.isValid(id)) {
+        const role = await this.roleRepository.findOne({ where: { _id: id } });
+        if (!role) {
             throw new common_1.BadRequestException(`Not found role with id=${id}`);
         }
-        return await this.roleModel.updateOne({ _id: id }, {
-            ...updateRoleDto,
+        const { permissions, ...rest } = updateRoleDto;
+        if (permissions) {
+            role.permissions = permissions.map((pId) => ({ _id: pId }));
+        }
+        Object.assign(role, {
+            ...rest,
             updatedBy: {
                 _id: user._id,
                 email: user.email,
             },
         });
+        return await this.roleRepository.save(role);
     }
     async remove(id, user) {
-        const foundRole = await this.roleModel.findById(id);
-        if (foundRole.name === customize_1.ADMIN_ROLE)
-            throw new common_1.BadRequestException('Cannot delete admin role !');
-        if (!mongoose_2.default.Types.ObjectId.isValid(id)) {
+        const foundRole = await this.roleRepository.findOne({ where: { _id: id } });
+        if (!foundRole) {
             throw new common_1.BadRequestException(`Not found role with id=${id}`);
         }
-        await this.roleModel.updateOne({ _id: id }, {
-            deletedBy: {
-                _id: user._id,
-                email: user.email,
-            },
-        });
-        return await this.roleModel.softDelete({ _id: id });
+        if (foundRole.name === customize_1.ADMIN_ROLE)
+            throw new common_1.BadRequestException('Cannot delete admin role !');
+        foundRole.deletedBy = {
+            _id: user._id,
+            email: user.email,
+        };
+        foundRole.isDeleted = true;
+        await this.roleRepository.save(foundRole);
+        return await this.roleRepository.softDelete({ _id: id });
     }
 };
 exports.RolesService = RolesService;
 exports.RolesService = RolesService = __decorate([
     (0, common_1.Injectable)(),
-    __param(0, (0, mongoose_1.InjectModel)(role_schema_1.Role.name)),
-    __metadata("design:paramtypes", [Object])
+    __param(0, (0, typeorm_1.InjectRepository)(role_entity_1.Role)),
+    __metadata("design:paramtypes", [typeorm_2.Repository])
 ], RolesService);
 //# sourceMappingURL=roles.service.js.map

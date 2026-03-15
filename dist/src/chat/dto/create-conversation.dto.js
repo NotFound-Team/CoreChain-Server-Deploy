@@ -16,7 +16,7 @@ class AdminDto {
 }
 exports.AdminDto = AdminDto;
 __decorate([
-    (0, class_validator_1.IsMongoId)({ message: 'Admin _id must be a valid mongoId.' }),
+    (0, class_validator_1.IsUUID)('all', { message: 'Admin _id must be a valid UUID.' }),
     __metadata("design:type", String)
 ], AdminDto.prototype, "_id", void 0);
 __decorate([
@@ -29,9 +29,9 @@ exports.CreateConversationDto = CreateConversationDto;
 __decorate([
     (0, class_validator_1.IsArray)(),
     (0, class_validator_1.ArrayMinSize)(2, { message: 'At least 2 participants in a conversation.' }),
-    (0, class_validator_1.IsMongoId)({
+    (0, class_validator_1.IsUUID)('all', {
         each: true,
-        message: 'Each participant must be a valid mongoId.',
+        message: 'Each participant must be a valid UUID.',
     }),
     __metadata("design:type", Array)
 ], CreateConversationDto.prototype, "participants", void 0);

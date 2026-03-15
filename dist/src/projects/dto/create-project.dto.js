@@ -8,13 +8,9 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CreateProjectDto = void 0;
 const class_validator_1 = require("class-validator");
-const mongoose_1 = __importDefault(require("mongoose"));
 class CreateProjectDto {
 }
 exports.CreateProjectDto = CreateProjectDto;
@@ -32,11 +28,11 @@ __decorate([
 ], CreateProjectDto.prototype, "attachments", void 0);
 __decorate([
     (0, class_validator_1.IsNotEmpty)(),
-    __metadata("design:type", mongoose_1.default.Schema.Types.ObjectId)
+    __metadata("design:type", String)
 ], CreateProjectDto.prototype, "department", void 0);
 __decorate([
     (0, class_validator_1.IsNotEmpty)(),
-    __metadata("design:type", mongoose_1.default.Schema.Types.ObjectId)
+    __metadata("design:type", String)
 ], CreateProjectDto.prototype, "manager", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),

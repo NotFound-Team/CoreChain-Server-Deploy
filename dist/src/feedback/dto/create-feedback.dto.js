@@ -16,7 +16,6 @@ class CreateFeedbackDto {
 exports.CreateFeedbackDto = CreateFeedbackDto;
 __decorate([
     (0, class_validator_1.IsNotEmpty)(),
-    (0, class_validator_1.IsMongoId)(),
     __metadata("design:type", String)
 ], CreateFeedbackDto.prototype, "sender", void 0);
 __decorate([

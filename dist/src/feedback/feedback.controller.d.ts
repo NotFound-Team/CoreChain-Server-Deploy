@@ -5,9 +5,9 @@ import { IUser } from 'src/users/users.interface';
 export declare class FeedbackController {
     private readonly feedbackService;
     constructor(feedbackService: FeedbackService);
-    create(createFeedbackDto: CreateFeedbackDto): Promise<import("mongoose").Types.ObjectId>;
+    create(createFeedbackDto: CreateFeedbackDto): Promise<string>;
     trace(id: string, decryptRequest: DecryptRequestDto, user: IUser): Promise<string>;
-    findAll(currentPage: string, limit: string, qs: string): Promise<{
+    findAll(currentPage: string, limit: string): Promise<{
         meta: {
             current: number;
             pageSize: number;
@@ -17,7 +17,5 @@ export declare class FeedbackController {
         result: import("./feedback.interface").IFeedback[];
     }>;
     findOne(id: string): Promise<import("./feedback.interface").IFeedback>;
-    remove(id: string, user: IUser): Promise<{
-        deleted: number;
-    }>;
+    remove(id: string, user: IUser): Promise<import("typeorm").UpdateResult>;
 }

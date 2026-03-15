@@ -10,9 +10,8 @@ exports.AppModule = void 0;
 const common_1 = require("@nestjs/common");
 const app_controller_1 = require("./app.controller");
 const app_service_1 = require("./app.service");
-const mongoose_1 = require("@nestjs/mongoose");
+const typeorm_1 = require("@nestjs/typeorm");
 const config_1 = require("@nestjs/config");
-const soft_delete_plugin_mongoose_1 = require("soft-delete-plugin-mongoose");
 const auth_module_1 = require("./auth/auth.module");
 const users_module_1 = require("./users/users.module");
 const throttler_1 = require("@nestjs/throttler");
@@ -39,13 +38,19 @@ exports.AppModule = AppModule;
 exports.AppModule = AppModule = __decorate([
     (0, common_1.Module)({
         imports: [
-            mongoose_1.MongooseModule.forRootAsync({
+            typeorm_1.TypeOrmModule.forRootAsync({
                 imports: [config_1.ConfigModule],
-                useFactory: async (configService) => ({
-                    uri: configService.get('MONGO_URL'),
-                    connectionFactory: (connection) => {
-                        connection.plugin(soft_delete_plugin_mongoose_1.softDeletePlugin);
-                        return connection;
+                useFactory: (configService) => ({
+                    type: 'mysql',
+                    host: configService.get('DB_HOST'),
+                    port: Number(configService.get('DB_PORT')),
+                    username: configService.get('DB_USERNAME'),
+                    password: configService.get('DB_PASSWORD'),
+                    database: configService.get('DB_DATABASE'),
+                    autoLoadEntities: true,
+                    synchronize: true,
+                    ssl: {
+                        rejectUnauthorized: false,
                     },
                 }),
                 inject: [config_1.ConfigService],

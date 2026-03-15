@@ -19,7 +19,7 @@ export declare class JwtStrategy extends JwtStrategy_base {
             _id: string;
             name: string;
         };
-        permissions: import("mongoose").Schema.Types.ObjectId[];
+        permissions: string[];
         employeeId: string;
     }>;
 }

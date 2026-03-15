@@ -25,8 +25,8 @@ let ProjectsController = class ProjectsController {
     create(createProjectDto, user) {
         return this.projectsService.create(createProjectDto, user);
     }
-    findAll(currentPage, limit, startDate, endDate, qs) {
-        return this.projectsService.findAll(+currentPage, +limit, startDate, endDate, qs);
+    findAll(query) {
+        return this.projectsService.findAll(query);
     }
     findOne(id) {
         return this.projectsService.findOne(id);
@@ -49,13 +49,9 @@ __decorate([
 ], ProjectsController.prototype, "create", null);
 __decorate([
     (0, common_1.Get)(),
-    __param(0, (0, common_1.Query)('current')),
-    __param(1, (0, common_1.Query)('pageSize')),
-    __param(2, (0, common_1.Query)('startDate')),
-    __param(3, (0, common_1.Query)('endDate')),
-    __param(4, (0, common_1.Query)()),
+    __param(0, (0, common_1.Query)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, String, String, String, String]),
+    __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", void 0)
 ], ProjectsController.prototype, "findAll", null);
 __decorate([

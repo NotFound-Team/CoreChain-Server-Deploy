@@ -4,15 +4,15 @@ import { IUser } from 'src/users/users.interface';
 import { UpdateWorkingHoursDto } from 'src/users/dto/update-user.dto';
 import { TasksService } from 'src/tasks/tasks.service';
 import { SalaryAdvanceDto } from './dto/salary-advance.dto';
-import { SalaryAdvanceDocument } from './schemas/salary-advance.schema';
-import { SoftDeleteModel } from 'soft-delete-plugin-mongoose';
-import mongoose from 'mongoose';
+import { Repository } from 'typeorm';
+import { SalaryAdvance } from './entities/salary-advance.entity';
 import { ISalaryAdvance } from './personnel.interface';
 export declare class PersonnelService {
-    private salaryAdvanceModel;
+    private salaryAdvanceRepository;
     private userService;
     private taskService;
-    constructor(salaryAdvanceModel: SoftDeleteModel<SalaryAdvanceDocument>, userService: UsersService, taskService: TasksService);
+    constructor(salaryAdvanceRepository: Repository<SalaryAdvance>, userService: UsersService, taskService: TasksService);
+    isValidId(id: string): boolean;
     calSalary(id: string, user: IUser): Promise<number>;
     salaryAdvance(salaryAdvanceDto: SalaryAdvanceDto, user: IUser): Promise<{
         message: string;
@@ -21,7 +21,7 @@ export declare class PersonnelService {
         message: string;
     }>;
     findOne(id: string): Promise<ISalaryAdvance>;
-    findAll(currentPage: number, limit: number, qs: string): Promise<{
+    findAll(query: any): Promise<{
         meta: {
             current: number;
             pageSize: number;
@@ -31,6 +31,6 @@ export declare class PersonnelService {
         result: ISalaryAdvance[];
     }>;
     calKpi(id: string, user: IUser): Promise<number>;
-    addAdjustments(id: string, updatePersonnelDto: UpdatePersonnelDto, user: IUser): Promise<mongoose.UpdateWriteOpResult>;
-    updateWorkingHours(updateWorkingHoursDto: UpdateWorkingHoursDto, user: IUser, id: string): Promise<mongoose.UpdateWriteOpResult>;
+    addAdjustments(id: string, updatePersonnelDto: UpdatePersonnelDto, user: IUser): Promise<import("../users/entities/user.entity").User>;
+    updateWorkingHours(updateWorkingHoursDto: UpdateWorkingHoursDto, user: IUser, id: string): Promise<import("../users/entities/user.entity").User>;
 }

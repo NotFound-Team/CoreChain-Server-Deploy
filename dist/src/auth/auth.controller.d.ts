@@ -30,11 +30,11 @@ export declare class AuthController {
     handleRefreshToken(request: Request, response: Response): Promise<{
         access_token: string;
         user: {
-            _id: import("mongoose").Types.ObjectId;
+            _id: string;
             name: string;
             email: string;
-            role: import("mongoose").Schema.Types.ObjectId;
-            permissions: import("mongoose").Schema.Types.ObjectId[];
+            role: import("../roles/entities/role.entity").Role;
+            permissions: string[];
         };
     }>;
     handleLogout(response: Response, user: IUser): Promise<string>;

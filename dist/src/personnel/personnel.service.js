@@ -20,15 +20,19 @@ const common_1 = require("@nestjs/common");
 const users_service_1 = require("../users/users.service");
 const customize_1 = require("../decorators/customize");
 const tasks_service_1 = require("../tasks/tasks.service");
-const mongoose_1 = require("@nestjs/mongoose");
-const salary_advance_schema_1 = require("./schemas/salary-advance.schema");
+const typeorm_1 = require("@nestjs/typeorm");
+const typeorm_2 = require("typeorm");
+const salary_advance_entity_1 = require("./entities/salary-advance.entity");
 const api_query_params_1 = __importDefault(require("api-query-params"));
-const mongoose_2 = __importDefault(require("mongoose"));
+const aqp_util_1 = require("../utils/aqp.util");
 let PersonnelService = class PersonnelService {
-    constructor(salaryAdvanceModel, userService, taskService) {
-        this.salaryAdvanceModel = salaryAdvanceModel;
+    constructor(salaryAdvanceRepository, userService, taskService) {
+        this.salaryAdvanceRepository = salaryAdvanceRepository;
         this.userService = userService;
         this.taskService = taskService;
+    }
+    isValidId(id) {
+        return /^[0-9a-fA-F]{24}$/.test(id) || /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
     }
     async calSalary(id, user) {
         try {
@@ -40,7 +44,6 @@ let PersonnelService = class PersonnelService {
                 new Date(adj.createdAt) <= customize_1.END_OF_MONTH)
                 .reduce((total, adj) => total + adj.amount, 0);
             const netSalary = baseSalary + totalAdjustments + employee.allowances;
-            console.log(netSalary);
             employee.netSalary = netSalary;
             employee.workingHours = 0;
             await this.userService.update(employee, user, id);
@@ -52,78 +55,84 @@ let PersonnelService = class PersonnelService {
     }
     async salaryAdvance(salaryAdvanceDto, user) {
         const { amount, reason, returnDate } = salaryAdvanceDto;
-        const countSalaryAdvance = await this.salaryAdvanceModel.countDocuments({
-            _id: user._id,
-            isApproved: false,
+        const countSalaryAdvance = await this.salaryAdvanceRepository.count({
+            where: {
+                employee: { _id: user._id },
+                isApproved: false,
+                isDeleted: false
+            }
         });
         if (amount <= 400 && countSalaryAdvance === 0) {
-            await this.salaryAdvanceModel.create({
-                employee: user._id,
+            const advance = this.salaryAdvanceRepository.create({
+                employee: { _id: user._id },
                 amount,
                 reason,
                 isApproved: true,
                 approvedBy: 'System',
                 returnDate,
             });
+            await this.salaryAdvanceRepository.save(advance);
         }
         else {
-            await this.salaryAdvanceModel.create({
-                employee: user._id,
+            const advance = this.salaryAdvanceRepository.create({
+                employee: { _id: user._id },
                 amount,
                 reason,
                 returnDate,
                 isApproved: false,
             });
+            await this.salaryAdvanceRepository.save(advance);
         }
         return { message: 'Salary advance request successful !' };
     }
     async approveSalaryAdvance(user, id) {
-        await this.salaryAdvanceModel.updateOne({ _id: id }, {
-            isApproved: true,
-            approvedBy: {
-                _id: user._id,
-                email: user.email,
-            },
-        });
+        if (!this.isValidId(id))
+            throw new common_1.BadRequestException(`Invalid salary advance ID`);
+        const advance = await this.salaryAdvanceRepository.findOne({ where: { _id: id } });
+        if (!advance)
+            throw new common_1.BadRequestException(`Invalid salary advance ID`);
+        advance.isApproved = true;
+        advance.approvedBy = {
+            _id: user._id,
+            email: user.email,
+        };
+        await this.salaryAdvanceRepository.save(advance);
         return { message: 'Approved salary advance !' };
     }
     async findOne(id) {
-        if (!mongoose_2.default.Types.ObjectId.isValid(id)) {
+        if (!this.isValidId(id)) {
             throw new common_1.BadRequestException(`Invalid salary advance ID`);
         }
-        return (await this.salaryAdvanceModel.findById(id));
+        return (await this.salaryAdvanceRepository.findOne({ where: { _id: id } }));
     }
-    async findAll(currentPage, limit, qs) {
-        const { filter, skip, sort, projection, population } = (0, api_query_params_1.default)(qs);
-        delete filter.current;
-        delete filter.pageSize;
-        filter.isDeleted = false;
-        let offset = (+currentPage - 1) * +limit;
-        let defaultLimit = +limit ? +limit : 10;
-        const totalItems = (await this.salaryAdvanceModel.find(filter)).length;
+    async findAll(query) {
+        const { filter, skip, limit, sort } = (0, api_query_params_1.default)(query);
+        const convertedFilter = (0, aqp_util_1.aqpTypeormConverter)(filter);
+        let defaultLimit = limit || 10;
+        let offset = skip || 0;
+        const currentPage = Math.floor(offset / defaultLimit) + 1;
+        const [result, totalItems] = await this.salaryAdvanceRepository.findAndCount({
+            skip: offset,
+            take: defaultLimit,
+            where: { isDeleted: false, ...convertedFilter },
+            order: sort,
+        });
         const totalPages = Math.ceil(totalItems / defaultLimit);
-        const result = await this.salaryAdvanceModel
-            .find(filter)
-            .skip(offset)
-            .limit(defaultLimit)
-            .sort(sort)
-            .populate(population)
-            .exec();
         return {
             meta: {
                 current: currentPage,
-                pageSize: limit,
+                pageSize: defaultLimit,
                 pages: totalPages,
                 total: totalItems,
             },
-            result,
+            result: result,
         };
     }
     async calKpi(id, user) {
         try {
             const notCompleteTask = await this.taskService.countTaskInMonth(0, id);
             const completeTask = await this.taskService.countTaskInMonth(3, id);
-            const kpi = (notCompleteTask / completeTask) * 100 || 0;
+            const kpi = completeTask ? (notCompleteTask / completeTask) * 100 : 0;
             const updateDto = { kpi: kpi };
             await this.userService.updatePublicUser(updateDto, user, id);
             return kpi;
@@ -148,8 +157,9 @@ let PersonnelService = class PersonnelService {
 exports.PersonnelService = PersonnelService;
 exports.PersonnelService = PersonnelService = __decorate([
     (0, common_1.Injectable)(),
-    __param(0, (0, mongoose_1.InjectModel)(salary_advance_schema_1.SalaryAdvance.name)),
-    __metadata("design:paramtypes", [Object, users_service_1.UsersService,
+    __param(0, (0, typeorm_1.InjectRepository)(salary_advance_entity_1.SalaryAdvance)),
+    __metadata("design:paramtypes", [typeorm_2.Repository,
+        users_service_1.UsersService,
         tasks_service_1.TasksService])
 ], PersonnelService);
 //# sourceMappingURL=personnel.service.js.map

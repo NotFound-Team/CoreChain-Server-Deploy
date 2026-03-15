@@ -14,7 +14,7 @@ export declare class PersonnelController {
         message: string;
     }>;
     findOne(id: string): Promise<import("./personnel.interface").ISalaryAdvance>;
-    findAll(currentPage: string, limit: string, qs: string): Promise<{
+    findAll(query: any): Promise<{
         meta: {
             current: number;
             pageSize: number;
@@ -24,6 +24,6 @@ export declare class PersonnelController {
         result: import("./personnel.interface").ISalaryAdvance[];
     }>;
     calculateKpi(id: string, user: IUser): Promise<number>;
-    addAdjustments(id: string, updatePersonnelDto: UpdatePersonnelDto, user: IUser): Promise<import("mongoose").UpdateWriteOpResult>;
-    updateWorkingHours(updateWorkingHoursDto: UpdateWorkingHoursDto, id: string, user: IUser): Promise<import("mongoose").UpdateWriteOpResult>;
+    addAdjustments(id: string, updatePersonnelDto: UpdatePersonnelDto, user: IUser): Promise<import("../users/entities/user.entity").User>;
+    updateWorkingHours(updateWorkingHoursDto: UpdateWorkingHoursDto, id: string, user: IUser): Promise<import("../users/entities/user.entity").User>;
 }

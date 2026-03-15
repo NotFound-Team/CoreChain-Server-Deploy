@@ -35,8 +35,8 @@ let PersonnelController = class PersonnelController {
     findOne(id) {
         return this.personnelService.findOne(id);
     }
-    findAll(currentPage, limit, qs) {
-        return this.personnelService.findAll(+currentPage, +limit, qs);
+    findAll(query) {
+        return this.personnelService.findAll(query);
     }
     calculateKpi(id, user) {
         return this.personnelService.calKpi(id, user);
@@ -82,11 +82,9 @@ __decorate([
 ], PersonnelController.prototype, "findOne", null);
 __decorate([
     (0, common_1.Get)('salary'),
-    __param(0, (0, common_1.Query)('current')),
-    __param(1, (0, common_1.Query)('pageSize')),
-    __param(2, (0, common_1.Query)()),
+    __param(0, (0, common_1.Query)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, String, String]),
+    __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", void 0)
 ], PersonnelController.prototype, "findAll", null);
 __decorate([

@@ -8,14 +8,10 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CreateUserDto = exports.AdjustmentDto = void 0;
 const class_transformer_1 = require("class-transformer");
 const class_validator_1 = require("class-validator");
-const mongoose_1 = __importDefault(require("mongoose"));
 class AdjustmentDto {
 }
 exports.AdjustmentDto = AdjustmentDto;
@@ -48,10 +44,6 @@ __decorate([
     __metadata("design:type", String)
 ], CreateUserDto.prototype, "password", void 0);
 __decorate([
-    (0, class_validator_1.IsNotEmpty)({ message: 'Role must not be empty !' }),
-    __metadata("design:type", mongoose_1.default.Schema.Types.ObjectId)
-], CreateUserDto.prototype, "role", void 0);
-__decorate([
     (0, class_validator_1.IsOptional)({ message: 'Working hours must not be empty !' }),
     (0, class_transformer_1.Transform)(({ value }) => (value === undefined ? 0 : value)),
     (0, class_validator_1.IsNumber)({}, { message: 'Working hours must be number !' }),
@@ -62,16 +54,6 @@ __decorate([
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
 ], CreateUserDto.prototype, "employeeId", void 0);
-__decorate([
-    (0, class_validator_1.IsNotEmpty)(),
-    (0, class_validator_1.IsMongoId)(),
-    __metadata("design:type", mongoose_1.default.Schema.Types.ObjectId)
-], CreateUserDto.prototype, "position", void 0);
-__decorate([
-    (0, class_validator_1.IsNotEmpty)({ message: 'Department must not be empty !' }),
-    (0, class_validator_1.IsMongoId)(),
-    __metadata("design:type", mongoose_1.default.Schema.Types.ObjectId)
-], CreateUserDto.prototype, "department", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsNumber)(),
@@ -112,8 +94,7 @@ __decorate([
 ], CreateUserDto.prototype, "biometricData", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
-    (0, class_validator_1.IsMongoId)(),
-    __metadata("design:type", mongoose_1.default.Schema.Types.ObjectId)
+    __metadata("design:type", String)
 ], CreateUserDto.prototype, "employeeContractCode", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),

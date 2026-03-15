@@ -6,33 +6,117 @@ import { IUser } from './users.interface';
 export declare class UsersController {
     private readonly usersService;
     constructor(usersService: UsersService);
-    create(createUserDto: CreateUserDto, user: IUser): Promise<import("mongoose").Types.ObjectId>;
-    findAll(currentPage: string, limit: string, qs: string): Promise<{
+    create(createUserDto: CreateUserDto, user: IUser): Promise<string>;
+    findAll(query: any): Promise<{
         meta: {
             current: number;
             pageSize: number;
             pages: number;
             total: number;
         };
-        result: import("./users.interface").PublicUser[];
+        result: {
+            _id: string;
+            name: string;
+            email: string;
+            avatar: string;
+            role: import("../roles/entities/role.entity").Role;
+            department: import("../departments/entities/department.entity").Department;
+            txHash: string;
+            workingHours: number;
+            kpi: number;
+            dayOff: number;
+            employeeId: string;
+            position: import("../positions/entities/position.entity").Position;
+            fcmToken: string;
+            createdAt: Date;
+            updatedAt: Date;
+            deletedAt: Date;
+            isDeleted: boolean;
+            createdBy: {
+                _id: string;
+                email: string;
+            };
+            updatedBy: {
+                _id: string;
+                email: string;
+            };
+            deletedBy: {
+                _id: string;
+                email: string;
+            };
+        }[];
     }>;
-    findAllByIds(ids: string[]): Promise<(import("mongoose").FlattenMaps<import("mongoose").Document<unknown, {}, import("./schemas/user.schema").User> & import("./schemas/user.schema").User & {
-        _id: import("mongoose").Types.ObjectId;
-    }> & Required<{
-        _id: import("mongoose").Types.ObjectId;
-    }>)[]>;
-    findOne(id: string): Promise<import("./users.interface").PublicUser>;
-    findOnePublic(id: string): Promise<import("./users.interface").PublicUser>;
+    findAllByIds(ids: string[]): Promise<{
+        _id: string;
+        name: string;
+        email: string;
+        avatar: string;
+        role: import("../roles/entities/role.entity").Role;
+        department: import("../departments/entities/department.entity").Department;
+        txHash: string;
+        workingHours: number;
+        kpi: number;
+        dayOff: number;
+        employeeId: string;
+        position: import("../positions/entities/position.entity").Position;
+        fcmToken: string;
+        createdAt: Date;
+        updatedAt: Date;
+        deletedAt: Date;
+        isDeleted: boolean;
+        createdBy: {
+            _id: string;
+            email: string;
+        };
+        updatedBy: {
+            _id: string;
+            email: string;
+        };
+        deletedBy: {
+            _id: string;
+            email: string;
+        };
+    }[]>;
+    findOne(id: string): Promise<{
+        _id: string;
+        name: string;
+        email: string;
+        avatar: string;
+        role: import("../roles/entities/role.entity").Role;
+        department: import("../departments/entities/department.entity").Department;
+        txHash: string;
+        workingHours: number;
+        kpi: number;
+        dayOff: number;
+        employeeId: string;
+        position: import("../positions/entities/position.entity").Position;
+        fcmToken: string;
+        createdAt: Date;
+        updatedAt: Date;
+        deletedAt: Date;
+        isDeleted: boolean;
+        createdBy: {
+            _id: string;
+            email: string;
+        };
+        updatedBy: {
+            _id: string;
+            email: string;
+        };
+        deletedBy: {
+            _id: string;
+            email: string;
+        };
+    }>;
+    findOnePublic(id: string): Promise<import("./entities/user.entity").User>;
     findPrivateOne(id: string): Promise<import("./users.interface").CompleteUser>;
-    update(updateUserDto: UpdateUserDto, id: string, user: IUser): Promise<import("mongoose").UpdateWriteOpResult>;
-    updatePublic(updatePublicUserDto: UpdatePublicUserDto, id: string, user: IUser): Promise<import("mongoose").UpdateWriteOpResult>;
-    updateWorkingHours(updateWorkingHoursDto: UpdateWorkingHoursDto, id: string, user: IUser): Promise<import("mongoose").UpdateWriteOpResult>;
+    update(updateUserDto: UpdateUserDto, id: string, user: IUser): Promise<import("./entities/user.entity").User>;
+    updatePublic(updatePublicUserDto: UpdatePublicUserDto, id: string, user: IUser): Promise<import("./entities/user.entity").User>;
+    updateWorkingHours(updateWorkingHoursDto: UpdateWorkingHoursDto, id: string, user: IUser): Promise<import("./entities/user.entity").User>;
     updateFcmToken(id: string, updateFcmTokenDto: UpdateFcmTokenDto, user: IUser): Promise<{
         message: string;
         userId: string;
     }>;
     changePass(updatePassword: UpdatePassword, user: IUser): Promise<string>;
-    remove(id: string, user: IUser): Promise<{
-        deleted: number;
-    }>;
+    remove(id: string, user: IUser): Promise<import("./entities/user.entity").User>;
 }

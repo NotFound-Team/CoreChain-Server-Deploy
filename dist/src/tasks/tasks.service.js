@@ -17,55 +17,47 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.TasksService = void 0;
 const common_1 = require("@nestjs/common");
-const api_query_params_1 = __importDefault(require("api-query-params"));
-const mongoose_1 = require("@nestjs/mongoose");
-const task_schema_1 = require("./schemas/task.schema");
-const mongoose_2 = __importDefault(require("mongoose"));
+const typeorm_1 = require("@nestjs/typeorm");
+const typeorm_2 = require("typeorm");
+const task_entity_1 = require("./entities/task.entity");
 const customize_1 = require("../decorators/customize");
 const notification_service_1 = require("../notification/notification.service");
 const users_service_1 = require("../users/users.service");
+const api_query_params_1 = __importDefault(require("api-query-params"));
+const aqp_util_1 = require("../utils/aqp.util");
 let TasksService = class TasksService {
-    constructor(taskModel, notificationService, usersService) {
-        this.taskModel = taskModel;
+    constructor(taskRepository, notificationService, usersService) {
+        this.taskRepository = taskRepository;
         this.notificationService = notificationService;
         this.usersService = usersService;
     }
+    isValidId(id) {
+        return /^[0-9a-fA-F]{24}$/.test(id) || /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
+    }
     async create(createTaskDto, user) {
         const { description, title, attachments = [], assignedTo, projectId, priority, status, startDate, dueDate, } = createTaskDto;
-        if (startDate && dueDate) {
-            const start = new Date(startDate);
-            const due = new Date(dueDate);
-            if (start > due) {
-                throw new common_1.BadRequestException('Start date must be before due date');
-            }
+        if (startDate && dueDate && new Date(startDate) > new Date(dueDate)) {
+            throw new common_1.BadRequestException('Start date must be before due date');
         }
-        const newTask = await this.taskModel.create({
-            createdBy: {
-                _id: user._id,
-                email: user.email,
-            },
-            title,
-            description,
-            attachments,
-            assignedTo,
-            projectId,
-            priority,
-            status,
-            startDate,
-            dueDate,
+        const newTask = this.taskRepository.create({
+            title, description, attachments, priority, status, startDate, dueDate,
+            projectId: projectId?.toString(),
+            assignedTo: assignedTo ? { _id: assignedTo.toString() } : null,
+            createdBy: { _id: user._id, email: user.email },
         });
-        this.publishTaskCreatedEvent(newTask, user).catch((error) => {
+        const saved = await this.taskRepository.save(newTask);
+        this.publishTaskCreatedEvent(saved, user).catch(error => {
             console.error('Failed to publish task.created event:', error);
         });
-        return newTask._id;
+        return saved._id;
     }
     async publishTaskCreatedEvent(task, creator) {
         try {
-            const assignedUser = await this.usersService.findOne(task.assignedTo.toString());
-            if (!assignedUser) {
-                console.warn(`Assigned user not found: ${task.assignedTo}`);
+            if (!task.assignedTo || !task.assignedTo._id)
                 return;
-            }
+            const assignedUser = await this.usersService.findOne(task.assignedTo._id);
+            if (!assignedUser)
+                return;
             const event = {
                 event_type: 'task.created',
                 timestamp: new Date().toISOString(),
@@ -74,11 +66,8 @@ let TasksService = class TasksService {
                     title: task.title,
                     description: task.description,
                     attachments: task.attachments,
-                    createdBy: {
-                        _id: creator._id.toString(),
-                        email: creator.email,
-                    },
-                    assignedTo: task.assignedTo.toString(),
+                    createdBy: creator,
+                    assignedTo: task.assignedTo._id.toString(),
                     projectId: task.projectId?.toString(),
                     priority: task.priority,
                     status: task.status,
@@ -106,55 +95,35 @@ let TasksService = class TasksService {
     }
     async countTask(status, id) {
         if (status === 0) {
-            return this.taskModel.countDocuments({
-                projectId: new mongoose_2.default.Types.ObjectId(id),
-            });
+            return this.taskRepository.count({ where: { projectId: id } });
         }
-        return this.taskModel.countDocuments({
-            status,
-            projectId: new mongoose_2.default.Types.ObjectId(id),
-        });
+        return this.taskRepository.count({ where: { status, projectId: id } });
     }
     async countTaskInMonth(status, id) {
-        if (status === 0) {
-            return await this.taskModel.countDocuments({
-                assignedTo: id,
-                createdAt: { $gte: customize_1.START_OF_MONTH, $lte: customize_1.END_OF_MONTH },
-            });
-        }
-        return await this.taskModel.countDocuments({
-            assignedTo: id,
-            status,
-            createdAt: { $gte: customize_1.START_OF_MONTH, $lte: customize_1.END_OF_MONTH },
-        });
+        const qb = this.taskRepository.createQueryBuilder('task')
+            .where('task.assignedToId = :id', { id })
+            .andWhere('task.createdAt >= :start AND task.createdAt <= :end', { start: customize_1.START_OF_MONTH, end: customize_1.END_OF_MONTH });
+        if (status !== 0)
+            qb.andWhere('task.status = :status', { status });
+        return qb.getCount();
     }
-    async findAll(currentPage, limit, startDate, dueDate, qs) {
-        let { filter, skip, sort, projection, population = [] } = (0, api_query_params_1.default)(qs);
-        console.log(filter);
-        delete filter.current;
-        delete filter.pageSize;
-        filter.isDeleted = false;
-        let offset = (+currentPage - 1) * +limit;
-        let defaultLimit = +limit ? +limit : 10;
-        if (startDate) {
-            filter.startDate = { $gte: startDate };
-        }
-        if (dueDate) {
-            filter.dueDate = { $lte: dueDate };
-        }
-        const totalItems = await this.taskModel.countDocuments(filter);
+    async findAll(query) {
+        const { filter, skip, limit, sort } = (0, api_query_params_1.default)(query);
+        const convertedFilter = (0, aqp_util_1.aqpTypeormConverter)(filter);
+        let defaultLimit = limit || 10;
+        let offset = skip || 0;
+        const currentPage = Math.floor(offset / defaultLimit) + 1;
+        const [result, totalItems] = await this.taskRepository.findAndCount({
+            skip: offset,
+            take: defaultLimit,
+            where: { isDeleted: false, ...convertedFilter },
+            order: sort,
+        });
         const totalPages = Math.ceil(totalItems / defaultLimit);
-        const result = await this.taskModel
-            .find(filter)
-            .skip(offset)
-            .limit(defaultLimit)
-            .sort(sort)
-            .populate(population)
-            .exec();
         return {
             meta: {
                 current: currentPage,
-                pageSize: limit,
+                pageSize: defaultLimit,
                 pages: totalPages,
                 total: totalItems,
             },
@@ -162,44 +131,46 @@ let TasksService = class TasksService {
         };
     }
     async findOne(id) {
-        if (!mongoose_2.default.Types.ObjectId.isValid(id)) {
+        if (!this.isValidId(id))
             throw new common_1.BadRequestException(`Invalid task ID`);
-        }
-        const task = await this.taskModel.findOne({ _id: id }).lean();
-        return task;
+        return await this.taskRepository.findOne({ where: { _id: id } });
     }
     async update(id, updateTaskDto, user) {
-        if (!mongoose_2.default.Types.ObjectId.isValid(id)) {
+        if (!this.isValidId(id))
             throw new common_1.BadRequestException(`Invalid task ID`);
-        }
-        return this.taskModel.updateOne({ _id: id }, {
-            ...updateTaskDto,
-            updatedBy: {
-                _id: user._id,
-                email: user.email,
-            },
+        const task = await this.taskRepository.findOne({ where: { _id: id } });
+        if (!task)
+            throw new common_1.BadRequestException(`Invalid task ID`);
+        const { assignedTo, projectId, ...rest } = updateTaskDto;
+        if (assignedTo)
+            task.assignedTo = { _id: assignedTo.toString() };
+        if (projectId)
+            task.projectId = projectId.toString();
+        Object.assign(task, {
+            ...rest,
+            updatedBy: { _id: user._id, email: user.email },
         });
+        return await this.taskRepository.save(task);
     }
     async remove(id, user) {
-        if (!mongoose_2.default.Types.ObjectId.isValid(id)) {
+        if (!this.isValidId(id))
             throw new common_1.BadRequestException(`Invalid task ID`);
-        }
-        await this.taskModel.updateOne({
-            _id: id,
-        }, {
-            deletedBy: {
-                _id: user._id,
-                email: user.email,
-            },
-        });
-        return this.taskModel.softDelete({ _id: id });
+        const task = await this.taskRepository.findOne({ where: { _id: id } });
+        if (!task)
+            throw new common_1.BadRequestException(`Invalid task ID`);
+        task.deletedBy = { _id: user._id, email: user.email };
+        task.isDeleted = true;
+        task.deletedAt = new Date();
+        await this.taskRepository.save(task);
+        return this.taskRepository.softDelete({ _id: id });
     }
 };
 exports.TasksService = TasksService;
 exports.TasksService = TasksService = __decorate([
     (0, common_1.Injectable)(),
-    __param(0, (0, mongoose_1.InjectModel)(task_schema_1.Task.name)),
-    __metadata("design:paramtypes", [Object, notification_service_1.NotificationService,
+    __param(0, (0, typeorm_1.InjectRepository)(task_entity_1.Task)),
+    __metadata("design:paramtypes", [typeorm_2.Repository,
+        notification_service_1.NotificationService,
         users_service_1.UsersService])
 ], TasksService);
 //# sourceMappingURL=tasks.service.js.map

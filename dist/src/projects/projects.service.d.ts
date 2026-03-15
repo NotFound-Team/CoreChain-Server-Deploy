@@ -1,20 +1,20 @@
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 import { IUser } from 'src/users/users.interface';
-import { ProjectDocument } from './schemas/project.schema';
-import { SoftDeleteModel } from 'soft-delete-plugin-mongoose';
-import mongoose, { Types } from 'mongoose';
+import { Repository } from 'typeorm';
+import { Project } from './entities/project.entity';
 import { TasksService } from 'src/tasks/tasks.service';
 import { IProject } from './project.interface';
 import { DepartmentsService } from 'src/departments/departments.service';
 export declare class ProjectsService {
-    private projectModel;
+    private projectRepository;
     private taskService;
     private departmentService;
-    constructor(projectModel: SoftDeleteModel<ProjectDocument>, taskService: TasksService, departmentService: DepartmentsService);
+    constructor(projectRepository: Repository<Project>, taskService: TasksService, departmentService: DepartmentsService);
+    isValidId(id: string): boolean;
     progressCalculation(id: string): Promise<number>;
-    create(createProjectDto: CreateProjectDto, user: IUser): Promise<Types.ObjectId>;
-    findAll(currentPage: number, limit: number, startDate: string, endDate: string, qs: string): Promise<{
+    create(createProjectDto: CreateProjectDto, user: IUser): Promise<string>;
+    findAll(query: any): Promise<{
         meta: {
             current: number;
             pageSize: number;
@@ -24,8 +24,6 @@ export declare class ProjectsService {
         result: IProject[];
     }>;
     findOne(id: string): Promise<IProject>;
-    update(id: string, updateProjectDto: UpdateProjectDto, user: IUser): Promise<mongoose.UpdateWriteOpResult>;
-    remove(id: string, user: IUser): Promise<{
-        deleted: number;
-    }>;
+    update(id: string, updateProjectDto: UpdateProjectDto, user: IUser): Promise<Project>;
+    remove(id: string, user: IUser): Promise<import("typeorm").UpdateResult>;
 }

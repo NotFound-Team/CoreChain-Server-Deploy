@@ -26,8 +26,8 @@ let UsersController = class UsersController {
     create(createUserDto, user) {
         return this.usersService.create(createUserDto, user);
     }
-    findAll(currentPage, limit, qs) {
-        return this.usersService.findAll(+currentPage, +limit, qs);
+    findAll(query) {
+        return this.usersService.findAll(query);
     }
     findAllByIds(ids) {
         return this.usersService.findAllByIds(ids);
@@ -71,11 +71,9 @@ __decorate([
 ], UsersController.prototype, "create", null);
 __decorate([
     (0, common_1.Get)(),
-    __param(0, (0, common_1.Query)('current')),
-    __param(1, (0, common_1.Query)('pageSize')),
-    __param(2, (0, common_1.Query)()),
+    __param(0, (0, common_1.Query)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, String, String]),
+    __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", void 0)
 ], UsersController.prototype, "findAll", null);
 __decorate([

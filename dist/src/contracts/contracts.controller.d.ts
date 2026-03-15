@@ -5,8 +5,8 @@ import { IUser } from 'src/users/users.interface';
 export declare class ContractsController {
     private readonly contractsService;
     constructor(contractsService: ContractsService);
-    create(createContractDto: CreateContractDto, user: IUser): Promise<import("mongoose").Types.ObjectId>;
-    findAll(currentPage: string, limit: string, qs: string): Promise<{
+    create(createContractDto: CreateContractDto, user: IUser): Promise<string>;
+    findAll(currentPage: string, limit: string): Promise<{
         meta: {
             current: number;
             pageSize: number;
@@ -16,8 +16,6 @@ export declare class ContractsController {
         result: import("./contract.interface").IContract[];
     }>;
     findOne(id: string): Promise<import("./contract.interface").IContract>;
-    update(id: string, updateContractDto: UpdateContractDto, user: IUser): Promise<import("mongoose").UpdateWriteOpResult>;
-    remove(id: string, user: IUser): Promise<{
-        deleted: number;
-    }>;
+    update(id: string, updateContractDto: UpdateContractDto, user: IUser): Promise<import("./entities/contract.entity").Contract>;
+    remove(id: string, user: IUser): Promise<import("typeorm").UpdateResult>;
 }

@@ -10,8 +10,8 @@ exports.UsersModule = void 0;
 const common_1 = require("@nestjs/common");
 const users_service_1 = require("./users.service");
 const users_controller_1 = require("./users.controller");
-const mongoose_1 = require("@nestjs/mongoose");
-const user_schema_1 = require("./schemas/user.schema");
+const typeorm_1 = require("@nestjs/typeorm");
+const user_entity_1 = require("./entities/user.entity");
 const blockchain_module_1 = require("../blockchain/blockchain.module");
 const security_module_1 = require("../security/security.module");
 const departments_module_1 = require("../departments/departments.module");
@@ -21,9 +21,7 @@ exports.UsersModule = UsersModule;
 exports.UsersModule = UsersModule = __decorate([
     (0, common_1.Module)({
         imports: [
-            mongoose_1.MongooseModule.forFeature([
-                { name: user_schema_1.User.name, schema: user_schema_1.UserSchema },
-            ]),
+            typeorm_1.TypeOrmModule.forFeature([user_entity_1.User]),
             blockchain_module_1.BlockchainModule,
             security_module_1.SecurityModule,
             departments_module_1.DepartmentsModule,

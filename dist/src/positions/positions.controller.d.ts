@@ -5,8 +5,8 @@ import { IUser } from 'src/users/users.interface';
 export declare class PositionsController {
     private readonly positionsService;
     constructor(positionsService: PositionsService);
-    create(createPositionDto: CreatePositionDto, user: IUser): Promise<import("mongoose").Types.ObjectId>;
-    findAll(currentPage: string, limit: string, qs: string): Promise<{
+    create(createPositionDto: CreatePositionDto, user: IUser): Promise<string>;
+    findAll(query: any): Promise<{
         meta: {
             current: number;
             pageSize: number;
@@ -15,9 +15,7 @@ export declare class PositionsController {
         };
         result: import("./position.interface").IPosition[];
     }>;
-    findOne(id: string): Promise<void>;
-    update(id: string, updatePositionDto: UpdatePositionDto, user: IUser): Promise<import("mongoose").UpdateWriteOpResult>;
-    remove(id: string, user: IUser): Promise<{
-        deleted: number;
-    }>;
+    findOne(id: string): Promise<import("./position.interface").IPosition>;
+    update(id: string, updatePositionDto: UpdatePositionDto, user: IUser): Promise<import("./entities/position.entity").Position>;
+    remove(id: string, user: IUser): Promise<import("typeorm").UpdateResult>;
 }

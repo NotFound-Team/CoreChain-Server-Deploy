@@ -10,17 +10,15 @@ exports.PermissionsModule = void 0;
 const common_1 = require("@nestjs/common");
 const permissions_service_1 = require("./permissions.service");
 const permissions_controller_1 = require("./permissions.controller");
-const mongoose_1 = require("@nestjs/mongoose");
-const permission_schema_1 = require("./schemas/permission.schema");
+const typeorm_1 = require("@nestjs/typeorm");
+const permission_entity_1 = require("./entities/permission.entity");
 let PermissionsModule = class PermissionsModule {
 };
 exports.PermissionsModule = PermissionsModule;
 exports.PermissionsModule = PermissionsModule = __decorate([
     (0, common_1.Module)({
         imports: [
-            mongoose_1.MongooseModule.forFeature([
-                { name: permission_schema_1.Permission.name, schema: permission_schema_1.PermissionSchema },
-            ]),
+            typeorm_1.TypeOrmModule.forFeature([permission_entity_1.Permission]),
         ],
         controllers: [permissions_controller_1.PermissionsController],
         providers: [permissions_service_1.PermissionsService],

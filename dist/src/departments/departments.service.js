@@ -17,67 +17,70 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.DepartmentsService = void 0;
 const common_1 = require("@nestjs/common");
+const typeorm_1 = require("@nestjs/typeorm");
+const typeorm_2 = require("typeorm");
+const department_entity_1 = require("./entities/department.entity");
 const api_query_params_1 = __importDefault(require("api-query-params"));
-const mongoose_1 = require("@nestjs/mongoose");
-const department_schema_1 = require("./schemas/department.schema");
-const mongoose_2 = __importDefault(require("mongoose"));
+const aqp_util_1 = require("../utils/aqp.util");
 let DepartmentsService = class DepartmentsService {
-    constructor(departmentModel) {
-        this.departmentModel = departmentModel;
+    constructor(departmentRepository) {
+        this.departmentRepository = departmentRepository;
+    }
+    isValidId(id) {
+        return /^[0-9a-fA-F]{24}$/.test(id) || /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
     }
     async create(createDepartmentDto, user) {
-        const isExist = await this.departmentModel.findOne({
-            code: createDepartmentDto.code,
+        const isExist = await this.departmentRepository.findOne({
+            where: { code: createDepartmentDto.code },
         });
         if (isExist) {
             throw new common_1.BadRequestException('Department already exist !');
         }
-        const newDepartment = await this.departmentModel.create({
+        const newDepartment = this.departmentRepository.create({
             ...createDepartmentDto,
+            employees: [],
+            projectIds: [],
             createdBy: {
                 _id: user._id,
                 email: user.email,
             },
         });
-        return newDepartment._id;
+        const saved = await this.departmentRepository.save(newDepartment);
+        return saved._id;
     }
-    async findAll(currentPage, limit, qs) {
-        let { filter, skip, sort, projection, population } = (0, api_query_params_1.default)(qs);
-        delete filter.current;
-        delete filter.pageSize;
-        filter.isDeleted = false;
-        let offset = (+currentPage - 1) * +limit;
-        let defaultLimit = +limit ? +limit : 10;
-        const totalItems = (await this.departmentModel.find(filter)).length;
+    async findAll(query) {
+        const { filter, skip, limit, sort } = (0, api_query_params_1.default)(query);
+        const convertedFilter = (0, aqp_util_1.aqpTypeormConverter)(filter);
+        let defaultLimit = limit || 10;
+        let offset = skip || 0;
+        const currentPage = Math.floor(offset / defaultLimit) + 1;
+        const [result, totalItems] = await this.departmentRepository.findAndCount({
+            skip: offset,
+            take: defaultLimit,
+            where: { isDeleted: false, ...convertedFilter },
+            order: sort,
+        });
         const totalPages = Math.ceil(totalItems / defaultLimit);
-        const result = await this.departmentModel
-            .find(filter)
-            .skip(offset)
-            .limit(defaultLimit)
-            .sort(sort)
-            .populate(population)
-            .exec();
         return {
             meta: {
                 current: currentPage,
-                pageSize: limit,
+                pageSize: defaultLimit,
                 pages: totalPages,
                 total: totalItems,
             },
-            result,
+            result: result,
         };
     }
     async findOne(id) {
-        if (!mongoose_2.default.Types.ObjectId.isValid(id)) {
+        if (!this.isValidId(id)) {
             throw new common_1.BadRequestException(`Invalid department ID`);
         }
-        return (await this.departmentModel.findById(id).exec());
+        return (await this.departmentRepository.findOne({ where: { _id: id } }));
     }
     async update(id, updateDepartmentDto, user) {
-        if (!mongoose_2.default.Types.ObjectId.isValid(id)) {
+        if (!this.isValidId(id)) {
             throw new common_1.BadRequestException(`Invalid department ID`);
         }
-        console.log(updateDepartmentDto);
         const updateData = user
             ? {
                 ...updateDepartmentDto,
@@ -87,25 +90,27 @@ let DepartmentsService = class DepartmentsService {
                 },
             }
             : updateDepartmentDto;
-        return this.departmentModel.updateOne({ _id: id }, updateData);
+        await this.departmentRepository.update(id, updateData);
+        return;
     }
     async remove(id, user) {
-        if (!mongoose_2.default.Types.ObjectId.isValid(id)) {
+        if (!this.isValidId(id)) {
             throw new common_1.BadRequestException(`Invalid department ID`);
         }
-        await this.departmentModel.updateOne({ _id: id }, {
-            updatedBy: {
-                _id: user._id,
-                email: user.email,
-            },
-        });
-        return this.departmentModel.softDelete({ _id: id });
+        const dept = await this.departmentRepository.findOne({ where: { _id: id } });
+        if (!dept)
+            throw new common_1.BadRequestException(`Invalid department ID`);
+        dept.updatedBy = { _id: user._id, email: user.email };
+        dept.deletedAt = new Date();
+        dept.isDeleted = true;
+        await this.departmentRepository.save(dept);
+        return this.departmentRepository.softDelete(id);
     }
 };
 exports.DepartmentsService = DepartmentsService;
 exports.DepartmentsService = DepartmentsService = __decorate([
     (0, common_1.Injectable)(),
-    __param(0, (0, mongoose_1.InjectModel)(department_schema_1.Department.name)),
-    __metadata("design:paramtypes", [Object])
+    __param(0, (0, typeorm_1.InjectRepository)(department_entity_1.Department)),
+    __metadata("design:paramtypes", [typeorm_2.Repository])
 ], DepartmentsService);
 //# sourceMappingURL=departments.service.js.map

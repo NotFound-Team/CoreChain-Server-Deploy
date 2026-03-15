@@ -25,8 +25,8 @@ let PositionsController = class PositionsController {
     create(createPositionDto, user) {
         return this.positionsService.create(createPositionDto, user);
     }
-    findAll(currentPage, limit, qs) {
-        return this.positionsService.findAll(+currentPage, +limit, qs);
+    findAll(query) {
+        return this.positionsService.findAll(query);
     }
     findOne(id) {
         return this.positionsService.findOne(id);
@@ -49,11 +49,9 @@ __decorate([
 ], PositionsController.prototype, "create", null);
 __decorate([
     (0, common_1.Get)(),
-    __param(0, (0, common_1.Query)('current')),
-    __param(1, (0, common_1.Query)('pageSize')),
-    __param(2, (0, common_1.Query)()),
+    __param(0, (0, common_1.Query)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, String, String]),
+    __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", void 0)
 ], PositionsController.prototype, "findAll", null);
 __decorate([

@@ -10,10 +10,10 @@ exports.ProjectsModule = void 0;
 const common_1 = require("@nestjs/common");
 const projects_service_1 = require("./projects.service");
 const projects_controller_1 = require("./projects.controller");
-const mongoose_1 = require("@nestjs/mongoose");
-const project_schema_1 = require("./schemas/project.schema");
+const typeorm_1 = require("@nestjs/typeorm");
+const project_entity_1 = require("./entities/project.entity");
 const tasks_module_1 = require("../tasks/tasks.module");
-const task_schema_1 = require("../tasks/schemas/task.schema");
+const task_entity_1 = require("../tasks/entities/task.entity");
 const users_module_1 = require("../users/users.module");
 const departments_module_1 = require("../departments/departments.module");
 let ProjectsModule = class ProjectsModule {
@@ -22,10 +22,7 @@ exports.ProjectsModule = ProjectsModule;
 exports.ProjectsModule = ProjectsModule = __decorate([
     (0, common_1.Module)({
         imports: [
-            mongoose_1.MongooseModule.forFeature([
-                { name: project_schema_1.Project.name, schema: project_schema_1.ProjectSchema },
-                { name: task_schema_1.Task.name, schema: task_schema_1.TaskSchema },
-            ]),
+            typeorm_1.TypeOrmModule.forFeature([project_entity_1.Project, task_entity_1.Task]),
             (0, common_1.forwardRef)(() => tasks_module_1.TasksModule),
             (0, common_1.forwardRef)(() => users_module_1.UsersModule),
             (0, common_1.forwardRef)(() => departments_module_1.DepartmentsModule),

@@ -1,21 +1,20 @@
 import { JwtService } from '@nestjs/jwt';
 import { CreateConversationDto } from './dto/create-conversation.dto';
-import { Conversation, ConversationDocument } from './schemas/conversation.schema';
-import { SoftDeleteModel } from 'soft-delete-plugin-mongoose';
-import { Message, MessageDocument } from './schemas/message.schema';
+import { Repository } from 'typeorm';
+import { Conversation } from './entities/conversation.entity';
+import { Message } from './entities/message.entity';
 import { WsService } from 'src/ws/ws.service';
 import { CreateMessageDto } from './dto/create-message.dto';
 import { ConversationItem } from './declarations/conversationItem';
-import { Types } from 'mongoose';
 import { Server, Socket } from 'socket.io';
 import { ConfigService } from '@nestjs/config';
 export declare class ChatService {
-    private conversationModel;
-    private messageModel;
+    private conversationRepository;
+    private messageRepository;
     private readonly wsService;
     private readonly jwtService;
     private readonly configService;
-    constructor(conversationModel: SoftDeleteModel<ConversationDocument>, messageModel: SoftDeleteModel<MessageDocument>, wsService: WsService, jwtService: JwtService, configService: ConfigService);
+    constructor(conversationRepository: Repository<Conversation>, messageRepository: Repository<Message>, wsService: WsService, jwtService: JwtService, configService: ConfigService);
     private server;
     private clients;
     setServer(server: Server): void;
@@ -25,35 +24,19 @@ export declare class ChatService {
     joinRoom(client: Socket, room: string): void;
     leaveRoom(client: Socket, room: string): void;
     broadcastToRoom(room: string, event: string, data: any): void;
-    create(createConversationDto: CreateConversationDto): Promise<import("mongoose").Document<unknown, {}, import("mongoose").Document<unknown, {}, Conversation> & Conversation & {
-        _id: Types.ObjectId;
-    }> & import("mongoose").Document<unknown, {}, Conversation> & Conversation & {
-        _id: Types.ObjectId;
-    }>;
+    create(createConversationDto: CreateConversationDto): Promise<Conversation[]>;
     getOrCreateDirectConversation({ userId, otherId, }: {
         userId: string;
         otherId: string;
-    }): Promise<import("mongoose").Document<unknown, {}, import("mongoose").Document<unknown, {}, Conversation> & Conversation & {
-        _id: Types.ObjectId;
-    }> & import("mongoose").Document<unknown, {}, Conversation> & Conversation & {
-        _id: Types.ObjectId;
-    }>;
+    }): Promise<Conversation>;
     getConversationById({ conversationId }: {
         conversationId: string;
-    }): Promise<import("mongoose").Document<unknown, {}, import("mongoose").Document<unknown, {}, Conversation> & Conversation & {
-        _id: Types.ObjectId;
-    }> & import("mongoose").Document<unknown, {}, Conversation> & Conversation & {
-        _id: Types.ObjectId;
-    }>;
+    }): Promise<Conversation>;
     getRecentConversations({ userId, lastConversationId, }: {
         userId: string;
         lastConversationId?: string;
     }): Promise<ConversationItem[]>;
-    createMessage(createMessageDto: CreateMessageDto): Promise<import("mongoose").Document<unknown, {}, import("mongoose").Document<unknown, {}, Message> & Message & {
-        _id: Types.ObjectId;
-    }> & import("mongoose").Document<unknown, {}, Message> & Message & {
-        _id: Types.ObjectId;
-    }>;
+    createMessage(createMessageDto: CreateMessageDto): Promise<Message>;
     getMessages({ conversationId, lastMessageId, }: {
         conversationId: string;
         lastMessageId?: string;

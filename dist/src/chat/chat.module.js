@@ -11,9 +11,9 @@ const common_1 = require("@nestjs/common");
 const chat_service_1 = require("./chat.service");
 const chat_gateway_1 = require("./chat.gateway");
 const ws_service_1 = require("../ws/ws.service");
-const mongoose_1 = require("@nestjs/mongoose");
-const conversation_schema_1 = require("./schemas/conversation.schema");
-const message_schema_1 = require("./schemas/message.schema");
+const typeorm_1 = require("@nestjs/typeorm");
+const conversation_entity_1 = require("./entities/conversation.entity");
+const message_entity_1 = require("./entities/message.entity");
 const auth_module_1 = require("../auth/auth.module");
 let ChatModule = class ChatModule {
 };
@@ -22,10 +22,7 @@ exports.ChatModule = ChatModule = __decorate([
     (0, common_1.Module)({
         imports: [
             auth_module_1.AuthModule,
-            mongoose_1.MongooseModule.forFeature([
-                { name: conversation_schema_1.Conversation.name, schema: conversation_schema_1.ConversationSchema },
-                { name: message_schema_1.Message.name, schema: message_schema_1.MessageSchema },
-            ]),
+            typeorm_1.TypeOrmModule.forFeature([conversation_entity_1.Conversation, message_entity_1.Message]),
         ],
         providers: [chat_gateway_1.ChatGateway, chat_service_1.ChatService, ws_service_1.WsService],
     })

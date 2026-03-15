@@ -11,53 +11,47 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ContractsService = void 0;
 const common_1 = require("@nestjs/common");
-const mongoose_1 = require("@nestjs/mongoose");
-const contract_schema_1 = require("./schemas/contract.schema");
-const api_query_params_1 = __importDefault(require("api-query-params"));
-const mongoose_2 = __importDefault(require("mongoose"));
+const typeorm_1 = require("@nestjs/typeorm");
+const typeorm_2 = require("typeorm");
+const contract_entity_1 = require("./entities/contract.entity");
 let ContractsService = class ContractsService {
-    constructor(contractModel) {
-        this.contractModel = contractModel;
+    constructor(contractRepository) {
+        this.contractRepository = contractRepository;
+    }
+    isValidId(id) {
+        return /^[0-9a-fA-F]{24}$/.test(id) || /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
     }
     async create(createContractDto, user) {
-        const isExist = await this.contractModel.findOne({
-            contractCode: createContractDto.contractCode,
+        const isExist = await this.contractRepository.findOne({
+            where: { contractCode: createContractDto.contractCode },
         });
         if (isExist) {
             throw new common_1.BadRequestException('Contract already exist !');
         }
-        const newContract = await this.contractModel.create({
+        const newContract = this.contractRepository.create({
             ...createContractDto,
+            employee: { _id: createContractDto.employee?.toString() },
             createdBy: {
                 _id: user._id,
                 email: user.email,
             },
         });
-        return newContract._id;
+        const saved = await this.contractRepository.save(newContract);
+        return saved._id;
     }
-    async findAll(currentPage, limit, qs) {
-        let { filter, skip, sort, projection, population = [] } = (0, api_query_params_1.default)(qs);
-        delete filter.current;
-        delete filter.pageSize;
-        filter.isDeleted = false;
-        let offset = (+currentPage - 1) * +limit;
-        let defaultLimit = +limit ? +limit : 10;
-        const totalItems = (await this.contractModel.find(filter)).length;
+    async findAll(currentPage = 1, limit = 10) {
+        let offset = (+currentPage - 1) * (+limit || 10);
+        let defaultLimit = +limit || 10;
+        const [result, totalItems] = await this.contractRepository.findAndCount({
+            skip: offset,
+            take: defaultLimit,
+            where: { isDeleted: false },
+            relations: ['employee'],
+        });
         const totalPages = Math.ceil(totalItems / defaultLimit);
-        population.push({ path: 'employee', select: 'name email' });
-        const result = await this.contractModel
-            .find(filter)
-            .skip(offset)
-            .limit(defaultLimit)
-            .sort(sort)
-            .populate(population)
-            .exec();
         return {
             meta: {
                 current: currentPage,
@@ -65,47 +59,56 @@ let ContractsService = class ContractsService {
                 pages: totalPages,
                 total: totalItems,
             },
-            result,
+            result: result,
         };
     }
     async findOne(id) {
-        if (!mongoose_2.default.Types.ObjectId.isValid(id)) {
+        if (!this.isValidId(id))
             throw new common_1.BadRequestException(`Invalid contract ID`);
-        }
-        return (await (await this.contractModel.findById(id)).populate({
-            path: 'employee',
-            select: 'name email',
-        }));
+        const contract = await this.contractRepository.findOne({
+            where: { _id: id, isDeleted: false },
+            relations: ['employee'],
+        });
+        return contract;
     }
     async update(id, updateContractDto, user) {
-        if (!mongoose_2.default.Types.ObjectId.isValid(id)) {
+        if (!this.isValidId(id))
             throw new common_1.BadRequestException(`Invalid contract ID`);
-        }
-        return this.contractModel.updateOne({ _id: id }, {
-            ...updateContractDto,
+        const contract = await this.contractRepository.findOne({ where: { _id: id } });
+        if (!contract)
+            throw new common_1.BadRequestException(`Invalid contract ID`);
+        const { employee, ...rest } = updateContractDto;
+        if (employee)
+            contract.employee = { _id: employee.toString() };
+        Object.assign(contract, {
+            ...rest,
             updatedBy: {
                 _id: user._id,
                 email: user.email,
             },
         });
+        return await this.contractRepository.save(contract);
     }
     async remove(id, user) {
-        if (!mongoose_2.default.Types.ObjectId.isValid(id)) {
+        if (!this.isValidId(id))
             throw new common_1.BadRequestException(`Invalid contract ID`);
-        }
-        await this.contractModel.updateOne({ _id: id }, {
-            deletedBy: {
-                _id: id,
-                email: user.email,
-            },
-        });
-        return this.contractModel.softDelete({ _id: id });
+        const contract = await this.contractRepository.findOne({ where: { _id: id } });
+        if (!contract)
+            throw new common_1.BadRequestException(`Invalid contract ID`);
+        contract.deletedBy = {
+            _id: user._id,
+            email: user.email,
+        };
+        contract.isDeleted = true;
+        contract.deletedAt = new Date();
+        await this.contractRepository.save(contract);
+        return this.contractRepository.softDelete({ _id: id });
     }
 };
 exports.ContractsService = ContractsService;
 exports.ContractsService = ContractsService = __decorate([
     (0, common_1.Injectable)(),
-    __param(0, (0, mongoose_1.InjectModel)(contract_schema_1.Contract.name)),
-    __metadata("design:paramtypes", [Object])
+    __param(0, (0, typeorm_1.InjectRepository)(contract_entity_1.Contract)),
+    __metadata("design:paramtypes", [typeorm_2.Repository])
 ], ContractsService);
 //# sourceMappingURL=contracts.service.js.map

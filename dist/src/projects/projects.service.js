@@ -17,74 +17,70 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ProjectsService = void 0;
 const common_1 = require("@nestjs/common");
-const mongoose_1 = require("@nestjs/mongoose");
-const project_schema_1 = require("./schemas/project.schema");
-const api_query_params_1 = __importDefault(require("api-query-params"));
-const mongoose_2 = __importDefault(require("mongoose"));
+const typeorm_1 = require("@nestjs/typeorm");
+const typeorm_2 = require("typeorm");
+const project_entity_1 = require("./entities/project.entity");
 const tasks_service_1 = require("../tasks/tasks.service");
 const departments_service_1 = require("../departments/departments.service");
+const api_query_params_1 = __importDefault(require("api-query-params"));
+const aqp_util_1 = require("../utils/aqp.util");
 let ProjectsService = class ProjectsService {
-    constructor(projectModel, taskService, departmentService) {
-        this.projectModel = projectModel;
+    constructor(projectRepository, taskService, departmentService) {
+        this.projectRepository = projectRepository;
         this.taskService = taskService;
         this.departmentService = departmentService;
+    }
+    isValidId(id) {
+        return /^[0-9a-fA-F]{24}$/.test(id) || /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
     }
     async progressCalculation(id) {
         const taskCompleted = await this.taskService.countTask(3, id);
         const taskAmount = await this.taskService.countTask(0, id);
-        console.log(taskCompleted, taskAmount);
+        if (!taskAmount)
+            return 0;
         return (taskCompleted / taskAmount) * 100;
     }
     async create(createProjectDto, user) {
         const { name, description, department, manager, attachments = [], teamMembers = [], tasks = [], expenses = [], revenue, priority, status, startDate, endDate, actualEndDate, } = createProjectDto;
-        const newProject = await this.projectModel.create({
-            name,
-            description,
-            department,
-            manager,
-            attachments,
-            teamMembers,
-            tasks,
-            expenses,
-            revenue,
-            priority,
-            status,
-            startDate,
-            endDate,
-            actualEndDate,
+        const newProject = this.projectRepository.create({
+            name, description, attachments, expenses, revenue,
+            priority, status, startDate, endDate, actualEndDate,
+            department: department ? { _id: department.toString() } : null,
+            manager: manager ? { _id: manager.toString() } : null,
+            teamMembers: teamMembers.map((id) => ({ _id: id.toString() })),
+            tasks: tasks.map((id) => ({ _id: id.toString() })),
+            createdBy: { _id: user._id, email: user.email },
         });
-        await this.departmentService.update(department.toString(), { $push: { projectIds: newProject._id } });
-        return newProject._id;
+        const saved = await this.projectRepository.save(newProject);
+        if (department) {
+            const dept = await this.departmentService.findOne(department.toString());
+            if (dept) {
+                if (!dept.projectIds)
+                    dept.projectIds = [];
+                dept.projectIds.push(saved._id);
+                await this.departmentService.update(department.toString(), { projectIds: dept.projectIds }, user);
+            }
+        }
+        return saved._id;
     }
-    async findAll(currentPage, limit, startDate, endDate, qs) {
-        let { filter, skip, sort, projection, population = [] } = (0, api_query_params_1.default)(qs);
-        delete filter.current;
-        delete filter.pageSize;
-        filter.isDeleted = false;
-        let offset = (+currentPage - 1) * +limit;
-        let defaultLimit = +limit ? +limit : 10;
-        if (startDate) {
-            filter.startDate = { $gte: startDate };
-        }
-        if (endDate) {
-            filter.endDate = { $lte: endDate };
-        }
-        const allProjects = await this.projectModel.find(filter);
-        const totalItems = allProjects.length;
+    async findAll(query) {
+        const { filter, skip, limit, sort } = (0, api_query_params_1.default)(query);
+        const convertedFilter = (0, aqp_util_1.aqpTypeormConverter)(filter);
+        let defaultLimit = limit || 10;
+        let offset = skip || 0;
+        const currentPage = Math.floor(offset / defaultLimit) + 1;
+        const whereClause = { isDeleted: false, ...convertedFilter };
+        const [result, totalItems] = await this.projectRepository.findAndCount({
+            skip: offset,
+            take: defaultLimit,
+            where: whereClause,
+            order: sort,
+            relations: ['tasks', 'manager', 'teamMembers'],
+        });
         const totalPages = Math.ceil(totalItems / defaultLimit);
-        population.push({ path: 'tasks', select: '_id name' });
-        population.push({ path: 'manager', select: '_id name email' });
-        population.push({ path: 'teamMembers', select: '_id name email' });
-        const projects = await this.projectModel
-            .find(filter)
-            .skip(offset)
-            .limit(defaultLimit)
-            .sort(sort)
-            .populate(population)
-            .exec();
-        const projectIds = projects.map((p) => p._id);
-        const taskCompletedCounts = await Promise.all(projectIds.map((id) => this.taskService.countTask(3, id.toString())));
-        const taskTotalCounts = await Promise.all(projectIds.map((id) => this.taskService.countTask(0, id.toString())));
+        const projects = result;
+        const taskCompletedCounts = await Promise.all(projects.map((p) => this.taskService.countTask(3, p._id)));
+        const taskTotalCounts = await Promise.all(projects.map((p) => this.taskService.countTask(0, p._id)));
         projects.forEach((project, index) => {
             const taskCompleted = taskCompletedCounts[index] || 0;
             const taskTotal = taskTotalCounts[index] || 1;
@@ -93,7 +89,7 @@ let ProjectsService = class ProjectsService {
         return {
             meta: {
                 current: currentPage,
-                pageSize: limit,
+                pageSize: defaultLimit,
                 pages: totalPages,
                 total: totalItems,
             },
@@ -101,51 +97,59 @@ let ProjectsService = class ProjectsService {
         };
     }
     async findOne(id) {
-        if (!mongoose_2.default.Types.ObjectId.isValid(id)) {
+        if (!this.isValidId(id))
             throw new common_1.BadRequestException(`Invalid project ID`);
+        const project = await this.projectRepository.findOne({
+            where: { _id: id, isDeleted: false },
+            relations: ['teamMembers', 'manager'],
+        });
+        if (project) {
+            project.progress = await this.progressCalculation(id);
         }
-        const project = await this.projectModel
-            .findOne({ _id: id })
-            .populate([
-            { path: 'teamMembers', select: 'name email' },
-            { path: 'manager', select: 'name email' },
-        ])
-            .lean();
-        project.progress = await this.progressCalculation(id);
         return project;
     }
     async update(id, updateProjectDto, user) {
-        if (!mongoose_2.default.Types.ObjectId.isValid(id)) {
+        if (!this.isValidId(id))
             throw new common_1.BadRequestException(`Invalid project ID`);
-        }
+        const project = await this.projectRepository.findOne({ where: { _id: id } });
+        if (!project)
+            throw new common_1.BadRequestException('Project not found');
         const progress = await this.progressCalculation(id);
-        return this.projectModel.updateOne({ _id: id }, {
+        const { teamMembers, tasks, manager, department, ...rest } = updateProjectDto;
+        if (teamMembers)
+            project.teamMembers = teamMembers.map((mId) => ({ _id: mId.toString() }));
+        if (tasks)
+            project.tasks = tasks.map((tId) => ({ _id: tId.toString() }));
+        if (manager)
+            project.manager = { _id: manager.toString() };
+        if (department)
+            project.department = { _id: department.toString() };
+        Object.assign(project, {
+            ...rest,
             progress: progress,
-            ...updateProjectDto,
-            updatedBy: {
-                _id: user._id,
-                email: user.email,
-            },
+            updatedBy: { _id: user._id, email: user.email },
         });
+        return await this.projectRepository.save(project);
     }
     async remove(id, user) {
-        if (!mongoose_2.default.Types.ObjectId.isValid(id)) {
+        if (!this.isValidId(id))
             throw new common_1.BadRequestException(`Invalid project ID`);
-        }
-        await this.projectModel.updateOne({ _id: id }, {
-            deletedBy: {
-                _id: user._id,
-                email: user.email,
-            },
-        });
-        return this.projectModel.softDelete({ _id: id });
+        const project = await this.projectRepository.findOne({ where: { _id: id } });
+        if (!project)
+            throw new common_1.BadRequestException('Project not found');
+        project.deletedBy = { _id: user._id, email: user.email };
+        project.isDeleted = true;
+        project.deletedAt = new Date();
+        await this.projectRepository.save(project);
+        return await this.projectRepository.softDelete({ _id: id });
     }
 };
 exports.ProjectsService = ProjectsService;
 exports.ProjectsService = ProjectsService = __decorate([
     (0, common_1.Injectable)(),
-    __param(0, (0, mongoose_1.InjectModel)(project_schema_1.Project.name)),
-    __metadata("design:paramtypes", [Object, tasks_service_1.TasksService,
+    __param(0, (0, typeorm_1.InjectRepository)(project_entity_1.Project)),
+    __metadata("design:paramtypes", [typeorm_2.Repository,
+        tasks_service_1.TasksService,
         departments_service_1.DepartmentsService])
 ], ProjectsService);
 //# sourceMappingURL=projects.service.js.map

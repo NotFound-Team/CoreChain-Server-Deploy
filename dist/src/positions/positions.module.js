@@ -10,17 +10,15 @@ exports.PositionsModule = void 0;
 const common_1 = require("@nestjs/common");
 const positions_service_1 = require("./positions.service");
 const positions_controller_1 = require("./positions.controller");
-const mongoose_1 = require("@nestjs/mongoose");
-const position_schema_1 = require("./schemas/position.schema");
+const typeorm_1 = require("@nestjs/typeorm");
+const position_entity_1 = require("./entities/position.entity");
 let PositionsModule = class PositionsModule {
 };
 exports.PositionsModule = PositionsModule;
 exports.PositionsModule = PositionsModule = __decorate([
     (0, common_1.Module)({
         imports: [
-            mongoose_1.MongooseModule.forFeature([
-                { name: position_schema_1.Position.name, schema: position_schema_1.PositionSchema },
-            ]),
+            typeorm_1.TypeOrmModule.forFeature([position_entity_1.Position]),
         ],
         controllers: [positions_controller_1.PositionsController],
         providers: [positions_service_1.PositionsService],

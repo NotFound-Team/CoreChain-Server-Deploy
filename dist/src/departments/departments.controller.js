@@ -25,8 +25,8 @@ let DepartmentsController = class DepartmentsController {
     create(createDepartmentDto, user) {
         return this.departmentsService.create(createDepartmentDto, user);
     }
-    findAll(currentPage, limit, qs) {
-        return this.departmentsService.findAll(+currentPage, +limit, qs);
+    findAll(query) {
+        return this.departmentsService.findAll(query);
     }
     findOne(id) {
         return this.departmentsService.findOne(id);
@@ -49,11 +49,9 @@ __decorate([
 ], DepartmentsController.prototype, "create", null);
 __decorate([
     (0, common_1.Get)(),
-    __param(0, (0, common_1.Query)('current')),
-    __param(1, (0, common_1.Query)('pageSize')),
-    __param(2, (0, common_1.Query)()),
+    __param(0, (0, common_1.Query)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, String, String]),
+    __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", void 0)
 ], DepartmentsController.prototype, "findAll", null);
 __decorate([
